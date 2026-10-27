@@ -21,7 +21,7 @@ async def test_setup_creates_relays_only() -> None:
 
     entities = add_entities.call_args.args[0]
     assert [entity.unique_id for entity in entities] == [f"salus_cloud_{fixtures.GATEWAY_ID}_{fixtures.RELAY_ID}"]
-    assert entities[0].name == "Home Living room heating"
+    assert entities[0].has_entity_name and entities[0].name is None  # shown with the device name only
 
 
 async def test_relay_state() -> None:

@@ -11,28 +11,28 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
-from homeassistant.components.number import NumberDeviceClass, NumberEntity, NumberMode
-from homeassistant.config_entries import ConfigEntry
+from homeassistant.components.number import NumberDeviceClass, NumberEntity, NumberEntityDescription, NumberMode
 from homeassistant.const import EntityCategory, UnitOfTemperature
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
-from .coordinator import SalusCloudCoordinator
+from .coordinator import SalusCloudCoordinator, SalusConfigEntry
 from .device import SalusDevice
 from .entity import SalusPropertyEntity
 from .shadow import find_property, scaled_value, signed_byte
 
+PARALLEL_UPDATES = 0
+
 
 @dataclass(frozen=True, kw_only=True)
-class SalusNumberDescription:
-    """Thermostat setting written through its Set* shadow property; key is also the translation key."""
+class SalusNumberDescription(NumberEntityDescription):
+    """Thermostat setting written through its Set* shadow property; key is also the translation key.
 
-    key: str
+    native_min_value / native_max_value apply unless the device reports its own limits (min_pattern / max_pattern).
+    """
+
     pattern: re.Pattern[str]
     scale: int
-    min_value: float
-    max_value: float
-    step: float
     min_pattern: re.Pattern[str] | None = None
     max_pattern: re.Pattern[str] | None = None
     signed_byte: bool = False
@@ -43,18 +43,18 @@ NUMBERS: tuple[SalusNumberDescription, ...] = (
         key="temperature_calibration",
         pattern=re.compile(r"^sTherS:TempCalibration_x10$"),
         scale=10,
-        min_value=-2.5,
-        max_value=2.5,
-        step=0.1,
+        native_min_value=-2.5,
+        native_max_value=2.5,
+        native_step=0.1,
         signed_byte=True,
     ),
     SalusNumberDescription(
         key="frost_temperature",
         pattern=re.compile(r"^sComm:FrostSetpoint_x100$"),
         scale=100,
-        min_value=5.0,
-        max_value=17.0,
-        step=0.5,
+        native_min_value=5.0,
+        native_max_value=17.0,
+        native_step=0.5,
         min_pattern=re.compile(r"^sComm:MinFrostSetpoint_x100$"),
         max_pattern=re.compile(r"^sComm:MaxFrostSetpoint_x100$"),
     ),
@@ -62,40 +62,43 @@ NUMBERS: tuple[SalusNumberDescription, ...] = (
         key="min_heat_setpoint",
         pattern=re.compile(r"^sTherS:MinHeatSetpoint_x100$"),
         scale=100,
-        min_value=5.0,
-        max_value=35.0,
-        step=0.5,
+        native_min_value=5.0,
+        native_max_value=35.0,
+        native_step=0.5,
     ),
     SalusNumberDescription(
         key="max_heat_setpoint",
         pattern=re.compile(r"^sTherS:MaxHeatSetpoint_x100$"),
         scale=100,
-        min_value=5.0,
-        max_value=35.0,
-        step=0.5,
+        native_min_value=5.0,
+        native_max_value=35.0,
+        native_step=0.5,
     ),
 )
 
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    entry: ConfigEntry,
-    async_add_entities: AddEntitiesCallback,
+    entry: SalusConfigEntry,
+    async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     """Set up thermostat settings."""
-    coordinator: SalusCloudCoordinator = entry.runtime_data
-    entities: list[NumberEntity] = []
-    for device in coordinator.data.values():
-        if not device.is_thermostat:
-            continue
-        for description in NUMBERS:
-            if (key := find_property(device.properties, description.pattern)) is not None:
-                entities.append(SalusNumber(coordinator, device, description, key))
-    async_add_entities(entities)
+    coordinator = entry.runtime_data
+    async_add_entities(
+        [
+            SalusNumber(coordinator, device, description, key)
+            for device in coordinator.data.values()
+            if device.is_thermostat
+            for description in NUMBERS
+            if (key := find_property(device.properties, description.pattern)) is not None
+        ]
+    )
 
 
 class SalusNumber(SalusPropertyEntity, NumberEntity):
     """A thermostat setting."""
+
+    entity_description: SalusNumberDescription
 
     _attr_entity_category = EntityCategory.CONFIG
     _attr_device_class = NumberDeviceClass.TEMPERATURE
@@ -111,8 +114,7 @@ class SalusNumber(SalusPropertyEntity, NumberEntity):
     ) -> None:
         """Initialize the setting for the property found when the device was set up."""
         super().__init__(coordinator, device, description.key, property_key)
-        self._description = description
-        self._attr_native_step = description.step
+        self.entity_description = description
 
     def _limit(self, pattern: re.Pattern[str] | None, default: float) -> float:
         properties = self.shadow_properties
@@ -124,23 +126,23 @@ class SalusNumber(SalusPropertyEntity, NumberEntity):
     @property
     def native_min_value(self) -> float:
         """Return the lowest value the device accepts."""
-        return self._limit(self._description.min_pattern, self._description.min_value)
+        return self._limit(self.entity_description.min_pattern, self.entity_description.native_min_value)
 
     @property
     def native_max_value(self) -> float:
         """Return the highest value the device accepts."""
-        return self._limit(self._description.max_pattern, self._description.max_value)
+        return self._limit(self.entity_description.max_pattern, self.entity_description.native_max_value)
 
     @property
     def native_value(self) -> float | None:
         """Return the current setting."""
         raw = self.raw_value
-        if self._description.signed_byte:
+        if self.entity_description.signed_byte:
             raw = signed_byte(raw)
         return scaled_value(self._property_key, raw)
 
     async def async_set_native_value(self, value: float) -> None:
         """Send the new setting to the thermostat."""
         await self.coordinator.async_set_property(
-            self._device_id, self._property_key, round(value * self._description.scale)
+            self._device_id, self._property_key, round(value * self.entity_description.scale)
         )

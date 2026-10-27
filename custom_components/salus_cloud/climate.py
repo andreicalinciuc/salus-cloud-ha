@@ -11,17 +11,22 @@ from homeassistant.components.climate import (
     HVACAction,
     HVACMode,
 )
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import ATTR_TEMPERATURE, UnitOfTemperature
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from .const import HOLD_TYPE_MANUAL, HOLD_TYPE_SCHEDULE, HOLD_TYPE_STANDBY
-from .coordinator import SalusCloudCoordinator
-from .device import SalusDevice
+from .coordinator import SalusConfigEntry
 from .entity import SalusEntity
-from .shadow import as_number, find_property, scaled_value
-from .thermostat import MAX_HEAT_SETPOINT_PATTERN, MIN_HEAT_SETPOINT_PATTERN, humidity_property, humidity_value
+from .shadow import find_property, scaled_value
+from .thermostat import (
+    MAX_HEAT_SETPOINT_PATTERN,
+    MIN_HEAT_SETPOINT_PATTERN,
+    battery_voltage,
+    humidity_property,
+    humidity_value,
+    temperature_value,
+)
 
 PRESET_SCHEDULE = "schedule"
 PRESET_MANUAL = "manual"
@@ -40,14 +45,16 @@ HOLD_TYPE_NAMES = {
 }
 SYSTEM_MODE_NAMES = {0: "Off", 1: "Auto", 4: "Heat"}
 
+PARALLEL_UPDATES = 0
+
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    entry: ConfigEntry,
-    async_add_entities: AddEntitiesCallback,
+    entry: SalusConfigEntry,
+    async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     """Set up Salus Cloud thermostats."""
-    coordinator: SalusCloudCoordinator = entry.runtime_data
+    coordinator = entry.runtime_data
     async_add_entities(
         [SalusCloudClimate(coordinator, device) for device in coordinator.data.values() if device.is_thermostat]
     )
@@ -69,13 +76,6 @@ class SalusCloudClimate(SalusEntity, ClimateEntity):
     _attr_preset_modes = [PRESET_SCHEDULE, PRESET_MANUAL, PRESET_AWAY]
     _attr_target_temperature_step = 0.5
 
-    def __init__(self, coordinator: SalusCloudCoordinator, device: SalusDevice) -> None:
-        """Initialize the thermostat; existing entity ids are kept by the entity registry."""
-        super().__init__(coordinator, device)
-        # The thermostat is the main feature of its device: it is shown with the device name only
-        self._attr_has_entity_name = True
-        self._attr_name = None
-
     def _limit(self, pattern: re.Pattern[str], default: float) -> float:
         properties = self.shadow_properties
         if (key := find_property(properties, pattern)) is None:
@@ -94,8 +94,8 @@ class SalusCloudClimate(SalusEntity, ClimateEntity):
         return self._limit(MAX_HEAT_SETPOINT_PATTERN, 35.0)
 
     def _temperature(self, name: str) -> float | None:
-        value = as_number(self.shadow_properties.get(name))
-        return value / 100 if value is not None else None
+        raw = self.shadow_properties.get(name)
+        return None if raw is None else temperature_value(name, raw)
 
     @property
     def current_temperature(self) -> float | None:
@@ -177,8 +177,8 @@ class SalusCloudClimate(SalusEntity, ClimateEntity):
             attributes["hold_type"] = HOLD_TYPE_NAMES.get(hold_type, f"Unknown ({hold_type})")
         if (system_mode := properties.get(names.system_mode)) is not None:
             attributes["system_mode"] = SYSTEM_MODE_NAMES.get(system_mode, f"Unknown ({system_mode})")
-        if (battery_voltage := properties.get(names.battery_voltage)) is not None:
-            attributes["battery_voltage"] = f"{battery_voltage / 10:.1f}V"
+        if (volts := battery_voltage(names.battery_voltage, properties.get(names.battery_voltage))) is not None:
+            attributes["battery_voltage"] = f"{volts:.1f}V"
         if (running_state := properties.get(names.running_state)) is not None:
             attributes["running_state"] = "Heating" if running_state == 1 else "Idle"
         return attributes

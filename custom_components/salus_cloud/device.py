@@ -2,14 +2,18 @@
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 from typing import Any
 
 from .properties import DEFAULT_PROPERTY_NAMES, PropertyNames
+from .shadow import find_property
 
 THERMOSTAT_MODELS = ("HTRP-RF", "TS600", "VS10", "VS20", "SQ610", "FC600", "IT800")
 SWITCH_MODELS = ("RS600", "SPE600", "SR600")
 BINARY_SENSOR_TYPES = ("door_sensor", "window_sensor", "motion_sensor", "binary_sensor")
+# Alarm of a Zigbee IAS zone device (door / window contact, water leak, smoke), 1 while alarmed
+IAS_ZONE_ALARM_PATTERN = re.compile(r"^sIASZS:ErrorIASZSAlarmed1$")
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -45,8 +49,8 @@ class SalusDevice:
 
     @property
     def is_thermostat(self) -> bool:
-        """Return whether the device is a thermostat."""
-        return (
+        """Return whether the device is a thermostat (a relay the user named "Thermostat ..." is not)."""
+        return not self.is_switch and (
             self.type in ("thermostat", "climate")
             or self.model.upper().startswith(THERMOSTAT_MODELS)
             or "thermostat" in self.name.lower()
@@ -59,5 +63,13 @@ class SalusDevice:
 
     @property
     def is_binary_sensor(self) -> bool:
-        """Return whether the device is a door, window or motion sensor."""
-        return self.type in BINARY_SENSOR_TYPES or self.model.upper().startswith("WLS")
+        """Return whether the device is a door, window, water leak, smoke or motion sensor."""
+        return (
+            self.type in BINARY_SENSOR_TYPES
+            or self.model.upper().startswith("WLS")
+            or (
+                not self.is_thermostat
+                and not self.is_switch
+                and find_property(self.properties, IAS_ZONE_ALARM_PATTERN) is not None
+            )
+        )

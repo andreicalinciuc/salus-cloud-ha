@@ -166,9 +166,7 @@ async def test_number_sends_set_command(hass: HomeAssistant, setup: tuple[MockCo
     assert hass.states.get(_entity_id(hass, "number", "_temperature_calibration")).state == "1.2"
 
 
-async def test_settings_send_set_commands(
-    hass: HomeAssistant, setup: tuple[MockConfigEntry, FakeConnection]
-) -> None:
+async def test_settings_send_set_commands(hass: HomeAssistant, setup: tuple[MockConfigEntry, FakeConnection]) -> None:
     """Switches and selects publish the values the Salus app sends."""
 
     _, connection = setup

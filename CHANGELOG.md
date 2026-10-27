@@ -3,6 +3,30 @@
 All notable changes to this project are documented in this file. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [2.2.0] - 2026-10-27
+
+### Fixed
+- A thermostat whose temperature sensor is missing or broken (reported as 0x8000) showed -327.68 °C; it now shows
+  no current temperature.
+- Door / window contacts, water leak and smoke sensors take their state from the alarm they report
+  (`sIASZS:ErrorIASZSAlarmed1`). Before, a WLS600 was shown as a door that never opened and other contacts got no
+  entity. A WLS600 is now a water leak (moisture) sensor. Not yet checked on real sensors: if a state looks wrong,
+  please open an issue with the diagnostics file.
+- A relay or plug named "Thermostat …" in the Salus app no longer also gets a thermostat entity.
+- Polling and the AWS IoT credential renewal no longer log in to Salus Cloud twice at the same time.
+- An account with only a gateway no longer asks Salus Cloud for the states of zero devices.
+- A non-numeric battery or device list value no longer breaks the thermostat attributes or the sensor.
+
+### Changed
+- Relays, plugs and door / window / leak sensors are shown with their device name, like thermostats
+  ("Living room heating" instead of "Home Living room heating"). New installations get entity ids such as
+  `switch.living_room_heating`; existing entity ids are kept.
+- Errors of commands (device not found, command not accepted, OneTouch rule failed) are translated
+  (English, Czech, Romanian).
+- A device that is no longer in the Salus account can be deleted from its device page.
+- Code follows current Home Assistant conventions: entity descriptions, typed config entry, `PARALLEL_UPDATES`.
+- CI also runs ruff (lint and format); a test pins every entity's unique id, translation key and category.
+
 ## [2.1.0] - 2026-10-27
 
 ### Changed

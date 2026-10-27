@@ -9,26 +9,27 @@ from homeassistant.components.sensor import (
     SensorEntity,
     SensorStateClass,
 )
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import PERCENTAGE, SIGNAL_STRENGTH_DECIBELS_MILLIWATT, EntityCategory, UnitOfTemperature
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
-from .coordinator import SalusCloudCoordinator
+from .coordinator import SalusCloudCoordinator, SalusConfigEntry
 from .device import SalusDevice
 from .entity import SalusEntity, SalusGatewayEntity, SalusPropertyEntity
 from .gateway import PANEL_SWITCH_PATTERN, RECEIVER_MODE_OPTIONS, RSSI_PATTERN, receiver_mode
-from .shadow import as_int, find_property
+from .shadow import as_int, as_number, find_property
 from .thermostat import SHADOW_SENSORS, ShadowSensorDescription
+
+PARALLEL_UPDATES = 0
 
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    entry: ConfigEntry,
-    async_add_entities: AddEntitiesCallback,
+    entry: SalusConfigEntry,
+    async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     """Set up Salus Cloud sensors."""
-    coordinator: SalusCloudCoordinator = entry.runtime_data
+    coordinator = entry.runtime_data
     entities: list[SensorEntity] = []
     for device in coordinator.data.values():
         if _has_temperature(device.info):
@@ -38,9 +39,11 @@ async def async_setup_entry(
         if _has_battery(device.info):
             entities.append(SalusCloudBatterySensor(coordinator, device))
         if device.is_thermostat:
-            for description in SHADOW_SENSORS:
-                if (key := description.find(device.model, device.properties)) is not None:
-                    entities.append(SalusShadowSensor(coordinator, device, description, key))
+            entities.extend(
+                SalusShadowSensor(coordinator, device, description, key)
+                for description in SHADOW_SENSORS
+                if (key := description.find(device.model, device.properties)) is not None
+            )
     for gateway in coordinator.gateways:
         properties = coordinator.gateway_properties(gateway.id)
         if (key := find_property(properties, PANEL_SWITCH_PATTERN, with_endpoint=True)) is not None:
@@ -71,7 +74,8 @@ def _value(data: dict[str, Any], fields: tuple[str, ...], scale_above_100: bool)
     for source in (data, data.get("status") if isinstance(data.get("status"), dict) else {}):
         for field in fields:
             if field in source:
-                value = source[field]
+                if (value := as_number(source[field])) is None:
+                    return None
                 if scale_above_100 and isinstance(value, int) and value > 100:
                     return value / 100.0
                 return float(value)
@@ -83,9 +87,9 @@ class SalusCloudSensor(SalusEntity, SensorEntity):
 
     def __init__(self, coordinator: SalusCloudCoordinator, device: SalusDevice, sensor_type: str) -> None:
         """Initialize the sensor."""
-        super().__init__(coordinator, device)
-        self._attr_name = f"{self._attr_name} {sensor_type.title()}"
-        self._attr_unique_id = f"{self._attr_unique_id}_{sensor_type}"
+        super().__init__(coordinator, device, sensor_type)
+        # The type only extends the unique id; the name comes from the device class ("Temperature")
+        self._attr_translation_key = None
 
     @property
     def info(self) -> dict[str, Any]:
@@ -147,6 +151,8 @@ class SalusCloudBatterySensor(SalusCloudSensor):
 class SalusShadowSensor(SalusPropertyEntity, SensorEntity):
     """One reported shadow property of a thermostat as its own sensor."""
 
+    entity_description: ShadowSensorDescription
+
     def __init__(
         self,
         coordinator: SalusCloudCoordinator,
@@ -156,19 +162,13 @@ class SalusShadowSensor(SalusPropertyEntity, SensorEntity):
     ) -> None:
         """Initialize the sensor for the property found when the device was set up."""
         super().__init__(coordinator, device, description.key, property_key)
-        self._description = description
-        self._attr_device_class = description.device_class
-        self._attr_native_unit_of_measurement = description.native_unit
-        self._attr_state_class = description.state_class
-        self._attr_entity_category = description.entity_category
-        self._attr_options = description.options
-        self._attr_suggested_display_precision = description.suggested_display_precision
+        self.entity_description = description
 
     @property
     def native_value(self) -> float | str | None:
         """Return the converted property value."""
         raw = self.raw_value
-        return None if raw is None else self._description.value(self._property_key, raw)
+        return None if raw is None else self.entity_description.value_fn(self._property_key, raw)
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:

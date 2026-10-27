@@ -31,7 +31,7 @@ STEP_USER_DATA_SCHEMA = vol.Schema(
 STEP_REAUTH_DATA_SCHEMA = vol.Schema({vol.Required(CONF_PASSWORD): str})
 
 
-class SalusIT600CloudConfigFlow(ConfigFlow, domain=DOMAIN):
+class SalusCloudConfigFlow(ConfigFlow, domain=DOMAIN):
     """Handle a config flow for Salus Cloud."""
 
     VERSION = 1

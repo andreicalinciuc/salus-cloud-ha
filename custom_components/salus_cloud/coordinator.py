@@ -56,15 +56,18 @@ HARDWARE_PATTERN = re.compile(r"^sBasicS:HardwareVersion$")
 VIA_DEVICE_ID_SUPPORTED = "via_device_id" in DeviceInfo.__annotations__
 
 
+type SalusConfigEntry = ConfigEntry[SalusCloudCoordinator]
+
+
 class SalusCloudCoordinator(DataUpdateCoordinator[dict[str, SalusDevice]]):
     """Keeps Salus device data up to date and sends commands to devices."""
 
-    config_entry: ConfigEntry
+    config_entry: SalusConfigEntry
 
     def __init__(
         self,
         hass: HomeAssistant,
-        entry: ConfigEntry,
+        entry: SalusConfigEntry,
         api: SalusCloudApi,
         *,
         connection_factory: Callable[..., SalusMqttConnection] = SalusMqttConnection,
@@ -335,18 +338,18 @@ class SalusCloudCoordinator(DataUpdateCoordinator[dict[str, SalusDevice]]):
         """Trigger a OneTouch rule of a gateway."""
         gateway = self.get_gateway(gateway_id)
         if gateway is None:
-            raise HomeAssistantError(f"Salus gateway {gateway_id} not found")
+            raise _error("gateway_not_found", f"Salus gateway {gateway_id} not found", gateway_id=gateway_id)
         try:
             await self._async_publish(
                 gateway.device_code, GATEWAY_SHADOW_INDEX, {"ep0:sRule:SetTriggerRule": rule_trigger_key}
             )
         except SalusCloudConnectionError as err:
-            raise HomeAssistantError(f"Failed to trigger OneTouch rule: {err}") from err
+            raise _error("rule_trigger_failed", f"Failed to trigger OneTouch rule: {err}", error=str(err)) from err
 
     def _require_device(self, device_id: str) -> SalusDevice:
         device = self.get_device(device_id)
         if device is None:
-            raise HomeAssistantError(f"Salus device {device_id} not found")
+            raise _error("device_not_found", f"Salus device {device_id} not found", device_id=device_id)
         return device
 
     async def _async_publish(self, device_code: str, device_index: str, properties: dict[str, Any]) -> None:
@@ -380,7 +383,8 @@ class SalusCloudCoordinator(DataUpdateCoordinator[dict[str, SalusDevice]]):
             if not self.push_available:
                 self._schedule_confirmation_refresh()
         if failed:
-            raise HomeAssistantError(f"Salus device did not accept the command: {', '.join(failed)}")
+            devices = ", ".join(failed)
+            raise _error("command_not_accepted", f"Salus device did not accept the command: {devices}", devices=devices)
 
     @callback
     def _schedule_confirmation_refresh(self) -> None:
@@ -393,6 +397,13 @@ class SalusCloudCoordinator(DataUpdateCoordinator[dict[str, SalusDevice]]):
     async def _async_confirmation_refresh(self, _now: datetime) -> None:
         self._cancel_confirmation = None
         await self.async_request_refresh()
+
+
+def _error(key: str, message: str, **placeholders: str) -> HomeAssistantError:
+    """Return an error shown translated in the UI; the English message is kept for logs."""
+    return HomeAssistantError(
+        message, translation_domain=DOMAIN, translation_key=key, translation_placeholders=placeholders
+    )
 
 
 def _version(properties: dict[str, Any], pattern: re.Pattern[str], *, with_endpoint: bool = False) -> str | None:

@@ -191,5 +191,19 @@
         }
       }
     }
+  },
+  "exceptions": {
+    "device_not_found": {
+      "message": "Salus device {device_id} was not found"
+    },
+    "gateway_not_found": {
+      "message": "Salus gateway {gateway_id} was not found"
+    },
+    "command_not_accepted": {
+      "message": "Salus device did not accept the command: {devices}"
+    },
+    "rule_trigger_failed": {
+      "message": "Failed to trigger the OneTouch rule: {error}"
+    }
   }
 }

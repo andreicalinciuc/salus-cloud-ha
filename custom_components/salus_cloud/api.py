@@ -118,6 +118,8 @@ class SalusCloudApi:
         self._refresh_token: str | None = None
         self._token_expiry: datetime | None = None
         self._identity_id: str | None = None
+        # Polling and the MQTT credential renewal may need new tokens at the same time
+        self._token_lock = asyncio.Lock()
 
     def _sync_authenticate(self) -> None:
         """Log in using SRP (blocking)."""
@@ -134,6 +136,7 @@ class SalusCloudApi:
 
     def _sync_refresh_tokens(self) -> None:
         """Renew tokens using the refresh token (blocking)."""
+        assert self._cognito is not None
         self._cognito.renew_access_token()
         self._access_token = self._cognito.access_token
         self._id_token = self._cognito.id_token
@@ -157,18 +160,24 @@ class SalusCloudApi:
             raise SalusCloudConnectionError(f"Login failed: {err!r}") from err
         self._token_expiry = jwt_expiry(self._id_token) or datetime.now(UTC) + TOKEN_FALLBACK_LIFETIME
 
+    def _token_valid(self) -> bool:
+        return self._token_expiry is not None and datetime.now(UTC) < self._token_expiry - TOKEN_REFRESH_MARGIN
+
     async def _ensure_token(self) -> None:
         """Renew tokens shortly before they expire."""
-        if self._token_expiry and datetime.now(UTC) < self._token_expiry - TOKEN_REFRESH_MARGIN:
+        if self._token_valid():
             return
-        if self._cognito and self._refresh_token:
-            try:
-                await self._login(self._sync_refresh_tokens)
-            except SalusCloudAuthenticationError:
-                _LOGGER.debug("Refresh token rejected, logging in again")
-            else:
+        async with self._token_lock:
+            if self._token_valid():
                 return
-        await self.authenticate()
+            if self._cognito and self._refresh_token:
+                try:
+                    await self._login(self._sync_refresh_tokens)
+                except SalusCloudAuthenticationError:
+                    _LOGGER.debug("Refresh token rejected, logging in again")
+                else:
+                    return
+            await self.authenticate()
 
     def _headers(self) -> dict[str, str]:
         return {
@@ -254,6 +263,8 @@ class SalusCloudApi:
 
     async def get_device_shadows(self, device_codes: list[str]) -> dict[str, dict[str, Any]]:
         """Return shadow documents of the devices keyed by device code."""
+        if not device_codes:
+            return {}
         response = await self._request(
             "POST",
             "/devices/device_shadows",

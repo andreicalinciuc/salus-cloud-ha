@@ -11,64 +11,79 @@ import re
 from dataclasses import dataclass
 from typing import Any
 
+from homeassistant.components.select import SelectEntityDescription
+from homeassistant.components.switch import SwitchEntityDescription
+from homeassistant.const import EntityCategory
+
 from .shadow import find_property
 
 
 @dataclass(frozen=True, kw_only=True)
-class Setting:
-    """Setting stored in one shadow property; key is also the translation key."""
+class SwitchSetting(SwitchEntityDescription):
+    """On/off setting stored in one shadow property; key is also the translation key."""
 
-    key: str
     # Matches the full property name (with endpoint)
     pattern: re.Pattern[str]
-
-    def find(self, properties: dict[str, Any]) -> str | None:
-        """Return the property of the device holding this setting, None when the device does not report it."""
-        return find_property(properties, self.pattern, with_endpoint=True)
-
-
-@dataclass(frozen=True, kw_only=True)
-class SwitchSetting(Setting):
-    """On/off setting."""
-
     on_value: int = 1
     off_value: int = 0
-    # Shown under the device's configuration; the key lock is shown as a control
-    config: bool = True
 
 
 @dataclass(frozen=True, kw_only=True)
-class SelectSetting(Setting):
-    """Setting with a fixed list of values: reported value -> option (translation key)."""
+class SelectSetting(SelectEntityDescription):
+    """Setting stored in one shadow property with a fixed list of values; key is also the translation key."""
 
-    options: dict[int, str]
+    # Matches the full property name (with endpoint)
+    pattern: re.Pattern[str]
+    # Reported value -> option (translation key)
+    values: dict[int, str]
+
+
+def find_setting(setting: SwitchSetting | SelectSetting, properties: dict[str, Any]) -> str | None:
+    """Return the property of the device holding the setting, None when the device does not report it."""
+    return find_property(properties, setting.pattern, with_endpoint=True)
 
 
 SWITCH_SETTINGS: tuple[SwitchSetting, ...] = (
-    # Lock icon on the device page of the Salus app (1 locked, 0 unlocked)
-    SwitchSetting(key="key_lock", pattern=re.compile(r"^ep1:sTherUIS:LockKey$"), config=False),
-    SwitchSetting(key="display_always_on", pattern=re.compile(r"^ep1:sComm:DisplayAlwaysOn$")),
-    SwitchSetting(key="optimum_start", pattern=re.compile(r"^ep1:sComm:OptimizeStart$")),
-    SwitchSetting(key="optimum_stop", pattern=re.compile(r"^ep1:sComm:OptimizeStop$")),
+    # Lock icon on the device page of the Salus app (1 locked, 0 unlocked), shown as a control
+    SwitchSetting(key="key_lock", pattern=re.compile(r"^ep1:sTherUIS:LockKey$")),
+    SwitchSetting(
+        key="display_always_on",
+        pattern=re.compile(r"^ep1:sComm:DisplayAlwaysOn$"),
+        entity_category=EntityCategory.CONFIG,
+    ),
+    SwitchSetting(
+        key="optimum_start",
+        pattern=re.compile(r"^ep1:sComm:OptimizeStart$"),
+        entity_category=EntityCategory.CONFIG,
+    ),
+    SwitchSetting(
+        key="optimum_stop",
+        pattern=re.compile(r"^ep1:sComm:OptimizeStop$"),
+        entity_category=EntityCategory.CONFIG,
+    ),
     # The app's "Frost protection" setting writes HolidayActive
-    SwitchSetting(key="frost_protection", pattern=re.compile(r"^ep1:sComm:HolidayActive$")),
+    SwitchSetting(
+        key="frost_protection",
+        pattern=re.compile(r"^ep1:sComm:HolidayActive$"),
+        entity_category=EntityCategory.CONFIG,
+    ),
 )
 
 SELECT_SETTINGS: tuple[SelectSetting, ...] = (
     SelectSetting(
         key="display_brightness",
         pattern=re.compile(r"^ep1:sComm:LEDBrightness$"),
-        options={204: "high", 64: "low"},
+        values={204: "high", 64: "low"},
     ),
     SelectSetting(
         key="temperature_display_resolution",
         pattern=re.compile(r"^ep1:sComm:TempDisplayResolution$"),
-        options={5: "half_degree", 1: "tenth_degree"},
+        values={5: "half_degree", 1: "tenth_degree"},
     ),
     SelectSetting(
         key="heating_control",
         pattern=re.compile(r"^ep1:sComm:HeatingControlAlgorithm$"),
-        options={
+        values={
             0: "hysteresis_0_25",
             1: "hysteresis_0_5",
             3: "hysteresis_1_0",

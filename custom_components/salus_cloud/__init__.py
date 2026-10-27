@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_EMAIL, CONF_PASSWORD, Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
@@ -11,7 +10,7 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .api import SalusCloudApi, SalusCloudAuthenticationError, SalusCloudConnectionError
 from .const import DOMAIN
-from .coordinator import SalusCloudCoordinator
+from .coordinator import SalusCloudCoordinator, SalusConfigEntry
 
 PLATFORMS: list[Platform] = [
     Platform.CLIMATE,
@@ -22,8 +21,6 @@ PLATFORMS: list[Platform] = [
     Platform.NUMBER,
     Platform.SELECT,
 ]
-
-type SalusConfigEntry = ConfigEntry[SalusCloudCoordinator]
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: SalusConfigEntry) -> bool:
@@ -63,3 +60,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: SalusConfigEntry) -> boo
 async def async_unload_entry(hass: HomeAssistant, entry: SalusConfigEntry) -> bool:
     """Unload a config entry (the coordinator stops its MQTT connection when the entry unloads)."""
     return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+
+
+async def async_remove_config_entry_device(
+    hass: HomeAssistant, entry: SalusConfigEntry, device_entry: dr.DeviceEntry
+) -> bool:
+    """Allow deleting a device only once Salus Cloud no longer lists it."""
+    coordinator = entry.runtime_data
+    current = {
+        *(coordinator.data or {}),
+        *(gateway.id for gateway in coordinator.gateways),
+        *(f"{gateway.id}_onetouch_rules" for gateway in coordinator.gateways),
+    }
+    return not any(domain == DOMAIN and identifier in current for domain, identifier in device_entry.identifiers)

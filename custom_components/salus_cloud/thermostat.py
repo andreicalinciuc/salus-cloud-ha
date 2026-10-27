@@ -12,7 +12,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
 
-from homeassistant.components.sensor import SensorDeviceClass, SensorStateClass
+from homeassistant.components.sensor import SensorDeviceClass, SensorEntityDescription, SensorStateClass
 from homeassistant.const import PERCENTAGE, EntityCategory, UnitOfElectricPotential, UnitOfTemperature
 
 from .const import HOLD_TYPE_MANUAL, HOLD_TYPE_SCHEDULE, HOLD_TYPE_STANDBY
@@ -91,19 +91,12 @@ def active_errors(properties: dict[str, Any]) -> list[str]:
 
 
 @dataclass(frozen=True, kw_only=True)
-class ShadowSensorDescription:
+class ShadowSensorDescription(SensorEntityDescription):
     """Sensor created from one reported shadow property; key is also the translation key."""
 
-    key: str
     # Matches "cluster:name" of the property (without endpoint)
     pattern: re.Pattern[str]
-    value: Callable[[str, Any], Any] = scaled_value
-    device_class: SensorDeviceClass | None = None
-    native_unit: str | None = None
-    state_class: SensorStateClass | None = None
-    entity_category: EntityCategory | None = None
-    options: list[str] | None = None
-    suggested_display_precision: int | None = None
+    value_fn: Callable[[str, Any], Any] = scaled_value
 
     def find(self, model: str, properties: dict[str, Any]) -> str | None:
         """Return the property of the device this sensor shows, None when the device does not report it."""
@@ -117,7 +110,7 @@ SHADOW_SENSORS: tuple[ShadowSensorDescription, ...] = (
         key="current_temperature",
         pattern=re.compile(r"^s\w+:LocalTemperature(_x100)?$"),
         device_class=SensorDeviceClass.TEMPERATURE,
-        native_unit=UnitOfTemperature.CELSIUS,
+        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
         state_class=SensorStateClass.MEASUREMENT,
         suggested_display_precision=1,
     ),
@@ -125,33 +118,33 @@ SHADOW_SENSORS: tuple[ShadowSensorDescription, ...] = (
         key="target_temperature",
         pattern=re.compile(r"^s\w+:HeatingSetpoint(_x100)?$"),
         device_class=SensorDeviceClass.TEMPERATURE,
-        native_unit=UnitOfTemperature.CELSIUS,
+        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
         suggested_display_precision=1,
     ),
     ShadowSensorDescription(
         key="floor_temperature",
         pattern=re.compile(r"^sTherS:FloorTemperature(_x100)?$"),
-        value=temperature_value,
+        value_fn=temperature_value,
         device_class=SensorDeviceClass.TEMPERATURE,
-        native_unit=UnitOfTemperature.CELSIUS,
+        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
         state_class=SensorStateClass.MEASUREMENT,
         suggested_display_precision=1,
     ),
     ShadowSensorDescription(
         key="current_humidity",
         pattern=HUMIDITY_PATTERN,
-        value=humidity_value,
+        value_fn=humidity_value,
         device_class=SensorDeviceClass.HUMIDITY,
-        native_unit=PERCENTAGE,
+        native_unit_of_measurement=PERCENTAGE,
         state_class=SensorStateClass.MEASUREMENT,
         suggested_display_precision=0,
     ),
     ShadowSensorDescription(
         key="battery_voltage",
         pattern=re.compile(r"^s\w+:BatteryVoltage(_x10|_x100)?$"),
-        value=battery_voltage,
+        value_fn=battery_voltage,
         device_class=SensorDeviceClass.VOLTAGE,
-        native_unit=UnitOfElectricPotential.VOLT,
+        native_unit_of_measurement=UnitOfElectricPotential.VOLT,
         state_class=SensorStateClass.MEASUREMENT,
         entity_category=EntityCategory.DIAGNOSTIC,
         suggested_display_precision=1,
@@ -159,14 +152,14 @@ SHADOW_SENSORS: tuple[ShadowSensorDescription, ...] = (
     ShadowSensorDescription(
         key="preset",
         pattern=re.compile(r"^s\w+:HoldType$"),
-        value=option_value(HOLD_TYPE_OPTIONS),
+        value_fn=option_value(HOLD_TYPE_OPTIONS),
         device_class=SensorDeviceClass.ENUM,
         options=list(HOLD_TYPE_OPTIONS.values()),
     ),
     ShadowSensorDescription(
         key="system_mode",
         pattern=re.compile(r"^s\w+:SystemMode$"),
-        value=option_value(SYSTEM_MODE_OPTIONS),
+        value_fn=option_value(SYSTEM_MODE_OPTIONS),
         device_class=SensorDeviceClass.ENUM,
         options=list(SYSTEM_MODE_OPTIONS.values()),
         entity_category=EntityCategory.DIAGNOSTIC,

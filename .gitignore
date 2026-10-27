@@ -54,4 +54,4 @@ Thumbs.db
 .storage/
 secrets.yaml
 known_devices.yaml
-.venv/
+.venv*/

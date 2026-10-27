@@ -191,5 +191,19 @@
         }
       }
     }
+  },
+  "exceptions": {
+    "device_not_found": {
+      "message": "Zařízení Salus {device_id} nebylo nalezeno"
+    },
+    "gateway_not_found": {
+      "message": "Brána Salus {gateway_id} nebyla nalezena"
+    },
+    "command_not_accepted": {
+      "message": "Zařízení Salus nepřijalo příkaz: {devices}"
+    },
+    "rule_trigger_failed": {
+      "message": "Pravidlo OneTouch se nepodařilo spustit: {error}"
+    }
   }
 }

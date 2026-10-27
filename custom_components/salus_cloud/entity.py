@@ -17,24 +17,23 @@ class SalusEntity(CoordinatorEntity[SalusCloudCoordinator]):
     """Entity of a Salus device backed by coordinator data.
 
     With a key the entity gets a short translated name under its device ("Humidity") and the key appended to its
-    unique id. Without one it is named "<gateway> <device>", which keeps entity ids of several homes apart.
+    unique id. Without one it is the main feature of its device (thermostat, relay, contact) and shown with the
+    device name only.
     """
+
+    _attr_has_entity_name = True
 
     def __init__(self, coordinator: SalusCloudCoordinator, device: SalusDevice, key: str | None = None) -> None:
         """Initialize the entity."""
         super().__init__(coordinator)
         self._device_id = device.id
         self._attr_device_info = coordinator.device_info(device)
-        unique_id = f"{DOMAIN}_{device.gateway_id}_{device.id}"
+        self._attr_unique_id = f"{DOMAIN}_{device.gateway_id}_{device.id}"
         if key is None:
-            gateway = coordinator.get_gateway(device.gateway_id)
-            self._attr_has_entity_name = False
-            self._attr_name = f"{gateway.name if gateway else 'Salus'} {device.name}"
-            self._attr_unique_id = unique_id
+            self._attr_name = None
         else:
-            self._attr_has_entity_name = True
             self._attr_translation_key = key
-            self._attr_unique_id = f"{unique_id}_{key}"
+            self._attr_unique_id += f"_{key}"
 
     @property
     def device(self) -> SalusDevice | None:

@@ -114,7 +114,7 @@ reports something unexpected, use **Download diagnostics** on the integration an
 - Thermostats: HTRP-RF, TS600, VS10/VS20, SQ610, FC600, **IT800TX**
 - Relays and plugs: RS600, SPE600, SR600
 - Sensors: temperature, humidity, battery
-- Binary sensors: WLS door/window, motion
+- Binary sensors: door / window contacts (SW600, OS600), water leak (WLS600), smoke and motion sensors
 - Buttons: OneTouch rules
 
 ## Troubleshooting
@@ -139,8 +139,9 @@ logger:
 
 ```bash
 python3.13 -m venv .venv && . .venv/bin/activate
-pip install -r requirements_test.txt
+pip install -r requirements_test.txt ruff==0.14.0
 pytest
+ruff check && ruff format --check
 ```
 
 Code layout (`custom_components/salus_cloud`):
@@ -157,7 +158,7 @@ Code layout (`custom_components/salus_cloud`):
 | `thermostat.py`, `settings.py`, `gateway.py` | What is shown for thermostats, app settings and gateways |
 | `entity.py` and the platform modules | Home Assistant entities |
 
-CI runs the tests against Home Assistant 2025.8.0 (minimum), 2026.2.3 and the latest release, plus
+CI runs the tests against Home Assistant 2025.8.0 (minimum), 2026.2.3 and the latest release, ruff, plus
 [hassfest](https://github.com/home-assistant/actions) and the [HACS action](https://hacs.xyz/docs/publish/action/).
 
 Pull requests are welcome; every change to `main` goes through a pull request reviewed by the maintainer

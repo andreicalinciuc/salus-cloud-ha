@@ -8,13 +8,12 @@ from homeassistant.components.binary_sensor import (
     BinarySensorDeviceClass,
     BinarySensorEntity,
 )
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
-from .coordinator import SalusCloudCoordinator
-from .device import SalusDevice
+from .coordinator import SalusCloudCoordinator, SalusConfigEntry
+from .device import IAS_ZONE_ALARM_PATTERN, SalusDevice
 from .entity import SalusEntity, SalusGatewayEntity, SalusPropertyEntity
 from .gateway import CLOUD_PATTERN, RELAY_PATTERN
 from .settings import is_setting
@@ -23,14 +22,16 @@ from .thermostat import BATTERY_LOW_PATTERN, ERROR_PATTERN, KEY_LOCK_PATTERN, RU
 
 TRUE_VALUES = ("on", "true", "1", "open", "active")
 
+PARALLEL_UPDATES = 0
+
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    entry: ConfigEntry,
-    async_add_entities: AddEntitiesCallback,
+    entry: SalusConfigEntry,
+    async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     """Set up Salus Cloud binary sensors."""
-    coordinator: SalusCloudCoordinator = entry.runtime_data
+    coordinator = entry.runtime_data
     entities: list[BinarySensorEntity] = []
     for device in coordinator.data.values():
         if device.is_binary_sensor:
@@ -58,7 +59,13 @@ async def async_setup_entry(
 
 def _device_class(device: SalusDevice) -> BinarySensorDeviceClass | None:
     device_type = device.type
-    if "door" in device_type or "window" in device_type or device.model.upper().startswith("WLS"):
+    model = device.model.upper()
+    # WLS600 is the water leak sensor; SW600 / OS600 are door and window contacts
+    if model.startswith("WLS"):
+        return BinarySensorDeviceClass.MOISTURE
+    if "SMOKE" in model:
+        return BinarySensorDeviceClass.SMOKE
+    if "door" in device_type or "window" in device_type or model.startswith(("SW600", "OS600")):
         return BinarySensorDeviceClass.DOOR
     if "motion" in device_type:
         return BinarySensorDeviceClass.MOTION
@@ -78,16 +85,24 @@ def _as_bool(value: Any) -> bool | None:
 
 
 class SalusCloudBinarySensor(SalusEntity, BinarySensorEntity):
-    """Door, window or motion sensor; the state is read from the Salus device list."""
+    """Door, window, water leak, smoke or motion sensor.
+
+    The state is the IAS zone alarm the device reports in its shadow; devices that do not report one fall back to
+    the fields of the Salus device list.
+    """
 
     def __init__(self, coordinator: SalusCloudCoordinator, device: SalusDevice) -> None:
         """Initialize the binary sensor."""
         super().__init__(coordinator, device)
         self._attr_device_class = _device_class(device)
+        self._alarm_key = find_property(device.properties, IAS_ZONE_ALARM_PATTERN)
 
     @property
-    def is_on(self) -> bool:
-        """Return true if the binary sensor is on."""
+    def is_on(self) -> bool | None:
+        """Return true while the sensor is open / alarmed."""
+        if self._alarm_key is not None:
+            value = as_int(self.shadow_properties.get(self._alarm_key))
+            return None if value is None else value != 0
         data = self.device.info if self.device else {}
         for field in ("is_on", "state", "active", "triggered", "open"):
             if field in data and (value := _as_bool(data[field])) is not None:

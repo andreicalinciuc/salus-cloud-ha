@@ -7,33 +7,33 @@ Salus app sends. Only created when the thermostat reports the setting.
 from __future__ import annotations
 
 from homeassistant.components.select import SelectEntity
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import HomeAssistantError
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
-from .coordinator import SalusCloudCoordinator
+from .coordinator import SalusCloudCoordinator, SalusConfigEntry
 from .device import SalusDevice
 from .entity import SalusPropertyEntity
-from .settings import SELECT_SETTINGS, SelectSetting
+from .settings import SELECT_SETTINGS, SelectSetting, find_setting
 from .shadow import as_int
+
+PARALLEL_UPDATES = 0
 
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    entry: ConfigEntry,
-    async_add_entities: AddEntitiesCallback,
+    entry: SalusConfigEntry,
+    async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     """Set up thermostat settings with a list of values."""
-    coordinator: SalusCloudCoordinator = entry.runtime_data
+    coordinator = entry.runtime_data
     async_add_entities(
         [
             SalusSettingSelect(coordinator, device, setting, key)
             for device in coordinator.data.values()
             if device.is_thermostat
             for setting in SELECT_SETTINGS
-            if (key := setting.find(device.properties)) is not None
+            if (key := find_setting(setting, device.properties)) is not None
         ]
     )
 
@@ -42,24 +42,23 @@ class SalusSettingSelect(SalusPropertyEntity, SelectEntity):
     """A thermostat setting with a fixed list of values."""
 
     _attr_entity_category = EntityCategory.CONFIG
+    entity_description: SelectSetting
 
     def __init__(
         self, coordinator: SalusCloudCoordinator, device: SalusDevice, setting: SelectSetting, property_key: str
     ) -> None:
         """Initialize the setting for the property found when the device was set up."""
         super().__init__(coordinator, device, setting.key, property_key)
-        self._setting = setting
-        self._values = {option: value for value, option in setting.options.items()}
-        self._attr_options = list(setting.options.values())
+        self.entity_description = setting
+        self._values = {option: value for value, option in setting.values.items()}
+        self._attr_options = list(setting.values.values())
 
     @property
     def current_option(self) -> str | None:
         """Return the current value, or None when the device reports a value the Salus app does not offer."""
         value = as_int(self.raw_value)
-        return None if value is None else self._setting.options.get(value)
+        return None if value is None else self.entity_description.values.get(value)
 
     async def async_select_option(self, option: str) -> None:
-        """Send the selected value to the thermostat."""
-        if option not in self._values:
-            raise HomeAssistantError(f"Unknown option {option}")
+        """Send the selected value to the thermostat (Home Assistant only passes listed options)."""
         await self.coordinator.async_set_property(self._device_id, self._property_key, self._values[option])

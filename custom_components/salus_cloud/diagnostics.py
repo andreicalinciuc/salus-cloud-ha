@@ -6,11 +6,10 @@ import re
 from typing import Any
 
 from homeassistant.components.diagnostics import async_redact_data
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_EMAIL, CONF_PASSWORD
 from homeassistant.core import HomeAssistant
 
-from .coordinator import SalusCloudCoordinator
+from .coordinator import SalusConfigEntry
 
 # Identifiers and personal data; device models, names and shadow property names stay visible
 TO_REDACT = {
@@ -44,9 +43,9 @@ def _redact_properties(properties: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry: ConfigEntry) -> dict[str, Any]:
+async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry: SalusConfigEntry) -> dict[str, Any]:
     """Return diagnostics for a config entry."""
-    coordinator: SalusCloudCoordinator = entry.runtime_data
+    coordinator = entry.runtime_data
     devices = [
         {
             "name": device.info.get("name"),

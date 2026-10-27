@@ -149,5 +149,19 @@
         }
       }
     }
+  },
+  "exceptions": {
+    "device_not_found": {
+      "message": "Dispozitivul Salus {device_id} nu a fost găsit"
+    },
+    "gateway_not_found": {
+      "message": "Gateway-ul Salus {gateway_id} nu a fost găsit"
+    },
+    "command_not_accepted": {
+      "message": "Dispozitivul Salus nu a acceptat comanda: {devices}"
+    },
+    "rule_trigger_failed": {
+      "message": "Regula OneTouch nu a putut fi declanșată: {error}"
+    }
   }
 }

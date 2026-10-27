@@ -2,9 +2,6 @@
 
 DOMAIN = "salus_cloud"
 
-# Config flow
-CONF_EMAIL = "email"
-CONF_PASSWORD = "password"
 # Option: mode change of one thermostat is applied to all thermostats of its gateway
 CONF_SYNC_MODES = "sync_thermostat_modes"
 
