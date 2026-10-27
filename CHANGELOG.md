@@ -199,6 +199,10 @@ First release of Salus Cloud.
   data are redacted.
 - GitHub Actions CI: pytest on Home Assistant 2025.8.0 (minimum) and the latest release, hassfest, HACS validation.
 
+[2.4.0]: https://github.com/andreicalinciuc/salus-cloud-ha/compare/v2.3.0...v2.4.0
+[2.3.0]: https://github.com/andreicalinciuc/salus-cloud-ha/compare/v2.2.1...v2.3.0
+[2.2.1]: https://github.com/andreicalinciuc/salus-cloud-ha/compare/v2.2.0...v2.2.1
+[2.2.0]: https://github.com/andreicalinciuc/salus-cloud-ha/compare/v2.1.0...v2.2.0
 [2.1.0]: https://github.com/andreicalinciuc/salus-cloud-ha/compare/v2.0.1...v2.1.0
 [2.0.1]: https://github.com/andreicalinciuc/salus-cloud-ha/compare/v2.0.0...v2.0.1
 [2.0.0]: https://github.com/andreicalinciuc/salus-cloud-ha/releases/tag/v2.0.0
