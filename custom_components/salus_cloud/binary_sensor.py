@@ -13,14 +13,24 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from .coordinator import SalusCloudCoordinator, SalusConfigEntry
-from .device import IAS_ZONE_ALARM_PATTERN, SalusDevice
+from .device import BINARY_SENSOR_CATEGORIES, IAS_ZONE_ALARM_PATTERN, SalusDevice
 from .entity import SalusEntity, SalusGatewayEntity, SalusPropertyEntity
 from .gateway import CLOUD_PATTERN, RELAY_PATTERN
+from .measurements import BATTERY_LOW_PATTERN as DEVICE_BATTERY_LOW_PATTERN
+from .measurements import RELAY_STATUS_PATTERN
 from .settings import is_setting
 from .shadow import as_int, as_number, find_properties, find_property
-from .thermostat import BATTERY_LOW_PATTERN, ERROR_PATTERN, KEY_LOCK_PATTERN, RUNNING_STATE_PATTERN, active_errors
+from .thermostat import (
+    BATTERY_LOW_PATTERN,
+    ERROR_PATTERN,
+    KEY_LOCK_PATTERN,
+    RUNNING_STATE_PATTERN,
+    active_errors,
+    is_heating,
+)
 
 TRUE_VALUES = ("on", "true", "1", "open", "active")
+TYPE_DEVICE_CLASSES = (("motion", BinarySensorDeviceClass.MOTION), ("occupancy", BinarySensorDeviceClass.OCCUPANCY))
 
 PARALLEL_UPDATES = 0
 
@@ -34,11 +44,15 @@ async def async_setup_entry(
     coordinator = entry.runtime_data
     entities: list[BinarySensorEntity] = []
     for device in coordinator.data.values():
+        properties = device.properties
         if device.is_binary_sensor:
             entities.append(SalusCloudBinarySensor(coordinator, device))
         if not device.is_thermostat:
+            if (key := find_property(properties, RELAY_STATUS_PATTERN)) is not None:
+                entities.append(SalusHeatingBinarySensor(coordinator, device, "heating", key))
+            if (key := find_property(properties, DEVICE_BATTERY_LOW_PATTERN)) is not None:
+                entities.append(SalusFlagBinarySensor(coordinator, device, "battery_low", key))
             continue
-        properties = device.properties
         if (key := find_property(properties, RUNNING_STATE_PATTERN)) is not None:
             entities.append(SalusHeatingBinarySensor(coordinator, device, "heating", key))
         if (key := find_property(properties, BATTERY_LOW_PATTERN)) is not None:
@@ -67,11 +81,9 @@ def _device_class(device: SalusDevice) -> BinarySensorDeviceClass | None:
         return BinarySensorDeviceClass.SMOKE
     if "door" in device_type or "window" in device_type or model.startswith(("SW600", "OS600")):
         return BinarySensorDeviceClass.DOOR
-    if "motion" in device_type:
-        return BinarySensorDeviceClass.MOTION
-    if "occupancy" in device_type:
-        return BinarySensorDeviceClass.OCCUPANCY
-    return None
+    if (device_class := BINARY_SENSOR_CATEGORIES.get(device.category or "")) is not None:
+        return BinarySensorDeviceClass(device_class)
+    return next((device_class for word, device_class in TYPE_DEVICE_CLASSES if word in device_type), None)
 
 
 def _as_bool(value: Any) -> bool | None:
@@ -116,13 +128,12 @@ class SalusCloudBinarySensor(SalusEntity, BinarySensorEntity):
 
 
 class SalusHeatingBinarySensor(SalusPropertyEntity, BinarySensorEntity):
-    """Whether the thermostat is calling for heat right now (RunningState): "Heating" / "Idle"."""
+    """Whether the thermostat calls for heat (RunningState) or a TRV / receiver relay is on: "Heating" / "Idle"."""
 
     @property
     def is_on(self) -> bool | None:
-        """Return true while the thermostat demands heat."""
-        value = self.raw_value
-        return None if value is None else value == 1
+        """Return true while the device heats."""
+        return is_heating(self.raw_value)
 
 
 class SalusFlagBinarySensor(SalusPropertyEntity, BinarySensorEntity):

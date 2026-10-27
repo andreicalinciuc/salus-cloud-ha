@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from typing import Any
 
@@ -24,6 +25,8 @@ class PropertyNames:
     set_on_off: str
     # Some thermostats change HVAC mode through SystemMode instead of HoldType
     hvac_mode_uses_system_mode: bool = False
+    # Setting a temperature also switches the thermostat to heating (SystemMode 4); a fan coil may be cooling
+    setpoint_sets_heat_mode: bool = True
 
 
 # Devices reporting under ep9, e.g. SQ610RF, HTRP-RF, TS600 and the relays
@@ -59,15 +62,45 @@ IT800 = PropertyNames(
     hvac_mode_uses_system_mode=True,
 )
 
+
+def zigbee_thermostat(endpoint: str) -> PropertyNames:
+    """Return the names of a thermostat reporting sTherS / sComm under another endpoint than ep1.
+
+    The FC600 fan coil reports them under ep9. It is switched off through the hold type alone, as the Salus app
+    does, and keeps its system mode (heating or cooling) when a temperature is set.
+    """
+    return PropertyNames(
+        family=f"sTherS ({endpoint})",
+        hold_type=f"{endpoint}:sComm:HoldType",
+        system_mode=f"{endpoint}:sTherS:SystemMode",
+        running_state=f"{endpoint}:sTherS:RunningState",
+        local_temperature=f"{endpoint}:sTherS:LocalTemperature_x100",
+        heating_setpoint=f"{endpoint}:sTherS:HeatingSetpoint_x100",
+        battery_voltage=f"{endpoint}:sPowerS:BatteryVoltage_x10",
+        on_off=f"{endpoint}:sOnOffS:OnOff",
+        set_hold_type=f"{endpoint}:sComm:SetHoldType",
+        set_heating_setpoint=f"{endpoint}:sTherS:SetHeatingSetpoint_x100",
+        set_system_mode=f"{endpoint}:sTherS:SetSystemMode",
+        set_on_off=f"{endpoint}:sOnOffS:SetOnOff",
+        setpoint_sets_heat_mode=False,
+    )
+
+
 DEFAULT_PROPERTY_NAMES = IT600
 
 # A single ep1 or ep2 property is enough to identify the family; the ep9 defaults stay in place
 # for the already supported devices, whose shadows do not contain them.
 _IT800_PREFIXES = ("ep1:sTherS:", "ep1:sComm:", "ep1:sPowerS:", "ep2:sOnOffS:")
+_THERMOSTAT_CLUSTER = re.compile(r"^(ep\d+):sTherS:(?:LocalTemperature|HeatingSetpoint)_x100$")
 
 
 def detect_property_names(properties: dict[str, Any]) -> PropertyNames:
     """Return the property names of the family that reported these shadow properties."""
     if any(name.startswith(_IT800_PREFIXES) for name in properties):
         return IT800
+    if any(name.startswith("ep9:sIT600TH:") for name in properties):
+        return IT600
+    for name in sorted(properties):
+        if match := _THERMOSTAT_CLUSTER.match(name):
+            return zigbee_thermostat(match.group(1))
     return DEFAULT_PROPERTY_NAMES

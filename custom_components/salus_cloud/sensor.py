@@ -17,6 +17,7 @@ from .coordinator import SalusCloudCoordinator, SalusConfigEntry
 from .device import SalusDevice
 from .entity import SalusEntity, SalusGatewayEntity, SalusPropertyEntity
 from .gateway import PANEL_SWITCH_PATTERN, RECEIVER_MODE_OPTIONS, RSSI_PATTERN, receiver_mode
+from .measurements import DEVICE_SENSORS
 from .shadow import as_int, as_number, find_property
 from .thermostat import SHADOW_SENSORS, ShadowSensorDescription
 
@@ -38,12 +39,11 @@ async def async_setup_entry(
             entities.append(SalusCloudHumiditySensor(coordinator, device))
         if _has_battery(device.info):
             entities.append(SalusCloudBatterySensor(coordinator, device))
-        if device.is_thermostat:
-            entities.extend(
-                SalusShadowSensor(coordinator, device, description, key)
-                for description in SHADOW_SENSORS
-                if (key := description.find(device.model, device.properties)) is not None
-            )
+        entities.extend(
+            SalusShadowSensor(coordinator, device, description, key)
+            for description in (SHADOW_SENSORS if device.is_thermostat else DEVICE_SENSORS)
+            if (key := description.find(device.model, device.properties)) is not None
+        )
     for gateway in coordinator.gateways:
         properties = coordinator.gateway_properties(gateway.id)
         if (key := find_property(properties, PANEL_SWITCH_PATTERN, with_endpoint=True)) is not None:
@@ -149,7 +149,7 @@ class SalusCloudBatterySensor(SalusCloudSensor):
 
 
 class SalusShadowSensor(SalusPropertyEntity, SensorEntity):
-    """One reported shadow property of a thermostat as its own sensor."""
+    """One reported shadow property of a device as its own sensor."""
 
     entity_description: ShadowSensorDescription
 

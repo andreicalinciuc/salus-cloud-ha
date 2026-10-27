@@ -25,6 +25,7 @@ from .thermostat import (
     battery_voltage,
     humidity_property,
     humidity_value,
+    is_heating,
     temperature_value,
 )
 
@@ -43,7 +44,7 @@ HOLD_TYPE_NAMES = {
     HOLD_TYPE_MANUAL: "Manual Hold",
     HOLD_TYPE_STANDBY: "Frost Protection",
 }
-SYSTEM_MODE_NAMES = {0: "Off", 1: "Auto", 4: "Heat"}
+SYSTEM_MODE_NAMES = {0: "Off", 1: "Auto", 3: "Cool", 4: "Heat"}
 
 PARALLEL_UPDATES = 0
 
@@ -134,7 +135,7 @@ class SalusCloudClimate(SalusEntity, ClimateEntity):
             return None
         if hvac_mode == HVACMode.OFF:
             return HVACAction.OFF
-        if self.shadow_properties.get(self.property_names.running_state) == 1:
+        if is_heating(self.shadow_properties.get(self.property_names.running_state)):
             return HVACAction.HEATING
         return HVACAction.IDLE
 
@@ -180,5 +181,5 @@ class SalusCloudClimate(SalusEntity, ClimateEntity):
         if (volts := battery_voltage(names.battery_voltage, properties.get(names.battery_voltage))) is not None:
             attributes["battery_voltage"] = f"{volts:.1f}V"
         if (running_state := properties.get(names.running_state)) is not None:
-            attributes["running_state"] = "Heating" if running_state == 1 else "Idle"
+            attributes["running_state"] = "Heating" if is_heating(running_state) else "Idle"
         return attributes

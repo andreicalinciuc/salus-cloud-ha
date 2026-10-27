@@ -102,6 +102,7 @@
         "state": {
           "off": "Oprit",
           "auto": "Auto",
+          "cool": "Răcire",
           "heat": "Încălzire"
         }
       },
@@ -148,6 +149,9 @@
       }
     },
     "switch": {
+      "relay": {
+        "name": "Releu {number}"
+      },
       "key_lock": {
         "name": "Blocare taste"
       },

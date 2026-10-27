@@ -19,9 +19,9 @@ from .const import HOLD_TYPE_MANUAL, HOLD_TYPE_SCHEDULE, HOLD_TYPE_STANDBY
 from .shadow import as_int, as_number, find_properties, find_property, property_name, scaled_value
 
 HOLD_TYPE_OPTIONS = {HOLD_TYPE_SCHEDULE: "schedule", HOLD_TYPE_MANUAL: "manual", HOLD_TYPE_STANDBY: "frost_protection"}
-SYSTEM_MODE_OPTIONS = {0: "off", 1: "auto", 4: "heat"}
+SYSTEM_MODE_OPTIONS = {0: "off", 1: "auto", 3: "cool", 4: "heat"}
 
-# Heat demand (1 heating)
+# Heat demand (bit 0 set while heating)
 RUNNING_STATE_PATTERN = re.compile(r"^s\w+:RunningState$")
 # Flags shown as binary sensors
 BATTERY_LOW_PATTERN = re.compile(r"^sPowerS:ErrorPowerSLowBattery$")
@@ -66,6 +66,12 @@ def temperature_value(key: str, raw: Any) -> float | None:
     if raw in INVALID_TEMPERATURE_X100:
         return None
     return scaled_value(key, raw)
+
+
+def is_heating(raw: Any) -> bool | None:
+    """Return whether a RunningState or RelayStatus means heating: bit 0, as iT600 reports 1 or 129 and FC600 33."""
+    value = as_int(raw)
+    return None if value is None else bool(value & 1)
 
 
 def battery_voltage(key: str, raw: Any) -> float | None:

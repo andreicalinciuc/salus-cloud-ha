@@ -102,6 +102,7 @@
         "state": {
           "off": "Off",
           "auto": "Auto",
+          "cool": "Cool",
           "heat": "Heat"
         }
       },
@@ -148,6 +149,9 @@
       }
     },
     "switch": {
+      "relay": {
+        "name": "Relay {number}"
+      },
       "key_lock": {
         "name": "Key lock"
       },

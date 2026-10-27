@@ -102,6 +102,7 @@
         "state": {
           "off": "Vypnuto",
           "auto": "Auto",
+          "cool": "Chlazení",
           "heat": "Topení"
         }
       },
@@ -148,6 +149,9 @@
       }
     },
     "switch": {
+      "relay": {
+        "name": "Relé {number}"
+      },
       "key_lock": {
         "name": "Zámek tlačítek"
       },

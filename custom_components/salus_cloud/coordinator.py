@@ -46,7 +46,7 @@ from .gateway import FIRMWARE_PATTERN as GATEWAY_FIRMWARE_PATTERN
 from .gateway import HARDWARE_PATTERN as GATEWAY_HARDWARE_PATTERN
 from .mqtt import SalusMqttConnection
 from .properties import detect_property_names
-from .shadow import find_property, set_property, version_string
+from .shadow import endpoint, find_property, set_property, version_string
 from .state import DeviceStateStore, extract_reported
 
 _LOGGER = logging.getLogger(__name__)
@@ -323,7 +323,11 @@ class SalusCloudCoordinator(DataUpdateCoordinator[dict[str, SalusDevice]]):
                     names.set_system_mode: 4 if turn_on else 0,
                     names.set_hold_type: HOLD_TYPE_SCHEDULE if turn_on else HOLD_TYPE_STANDBY,
                 }
-            return {names.set_hold_type: HOLD_TYPE_SCHEDULE if turn_on else HOLD_TYPE_STANDBY}
+            properties: dict[str, Any] = {names.set_hold_type: HOLD_TYPE_SCHEDULE if turn_on else HOLD_TYPE_STANDBY}
+            # A device switched off through its system mode (e.g. on the device) stays off with the hold type alone
+            if turn_on and target.properties.get(names.system_mode) == 0:
+                properties[names.set_system_mode] = 4
+            return properties
 
         await self._async_send(self._thermostat_targets(device), command)
 
@@ -333,11 +337,13 @@ class SalusCloudCoordinator(DataUpdateCoordinator[dict[str, SalusDevice]]):
 
         def command(target: SalusDevice) -> dict[str, Any]:
             names = target.names
-            return {
+            properties: dict[str, Any] = {
                 names.set_heating_setpoint: round(temperature * 100),
                 names.set_hold_type: HOLD_TYPE_MANUAL,
-                names.set_system_mode: 4,
             }
+            if names.setpoint_sets_heat_mode:
+                properties[names.set_system_mode] = 4
+            return properties
 
         await self._async_send([device], command)
 
@@ -345,10 +351,21 @@ class SalusCloudCoordinator(DataUpdateCoordinator[dict[str, SalusDevice]]):
         """Send the Set* command of a reported property (e.g. a calibration) to one device."""
         await self._async_send([self._require_device(device_id)], {set_property(reported_key): value})
 
-    async def async_set_switch(self, device_id: str, turn_on: bool) -> None:
-        """Turn relay or smart plug on or off."""
+    async def async_set_switch(self, device_id: str, turn_on: bool, on_off_key: str | None = None) -> None:
+        """Turn a relay or smart plug output on or off (the one of its family unless an OnOff property is given)."""
         device = self._require_device(device_id)
-        await self._async_send([device], lambda target: {target.names.set_on_off: 1 if turn_on else 0})
+        value = 1 if turn_on else 0
+        if on_off_key is not None:
+            await self._async_send([device], {set_property(on_off_key): value})
+        else:
+            await self._async_send([device], lambda target: {target.names.set_on_off: value})
+
+    async def async_set_cover_position(self, device_id: str, level_key: str, position: int) -> None:
+        """Move a roller shutter to a position (0 closed, 100 open) with the command the Salus app sends."""
+        await self._async_send(
+            [self._require_device(device_id)],
+            {f"{endpoint(level_key)}:sLevelS:SetMoveToLevel": f"{position:02x}FFFF"},
+        )
 
     async def async_trigger_rule(self, gateway_id: str, rule_trigger_key: str) -> None:
         """Trigger a OneTouch rule of a gateway."""
@@ -381,13 +398,16 @@ class SalusCloudCoordinator(DataUpdateCoordinator[dict[str, SalusDevice]]):
         await self.async_read_humidity()
 
     async def async_read_humidity(self) -> None:
-        """Ask devices with a humidity sensor for a fresh reading; it arrives like any value they report.
+        """Ask thermostats with a humidity sensor for a fresh reading; it arrives like any value they report.
 
         Reads are not settings: nothing is shown as pending, and a failure is only logged (once until reads work
         again, so an offline gateway does not fill the log).
         """
+        # Thermostats only: a battery humidity sensor would be woken up every few minutes
         targets = [
-            (device, command) for device in (self.data or {}).values() if (command := device.humidity_read_command)
+            (device, command)
+            for device in (self.data or {}).values()
+            if device.is_thermostat and (command := device.humidity_read_command)
         ]
         results = await asyncio.gather(
             *(

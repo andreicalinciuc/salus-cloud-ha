@@ -3,6 +3,38 @@
 All notable changes to this project are documented in this file. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [2.4.0] - 2026-10-27
+
+Support for the other Salus models. Their property names follow the Salus web app (eu.premium.salusconnect.io),
+which maps each device category to the properties it reads and writes; none of them has been checked on a real
+device yet. If one shows something wrong, please open an issue with the diagnostics file.
+
+### Added
+- Devices are recognized by their category in the Salus device list, then by the Salus app's model catalog, then
+  by model name as before. New thermostats: HTRS-RF, HTR-RF, SQ605 (dial RF), SQ620 (Quantum Plus), IT700TX,
+  IT710TX, RSQ800WRF, Elypso C900T / EL600T, TRV3RF and CTLV630.
+- Roller shutters: an RS600 in roller shutter mode is a cover (open, close, position).
+- Relays with two outputs (an RS600 used as two relays) get a switch for each output ("Relay 3").
+- New relays and plugs: SP600, SC812ZB, SC824ZB, smart outlets and light switches.
+- Remote temperature sensors (PS600 and others): temperature, humidity and battery voltage they report, and their
+  battery alarm.
+- TRVs controlled by a thermostat (it600TRV, it600MINITRV, TRV10RFM) and receivers: "Heating" from their relay.
+- Motion, smoke, heat, door and window sensors get their device class from the category.
+- System mode "Cool" (3) on the system mode sensor.
+
+### Fixed
+- FC600 fan coil thermostats showed no temperature, target or mode on the thermostat card: they report `sTherS` /
+  `sComm` under ep9. Turning one off now sends only the hold type, and a new temperature no longer switches a
+  cooling fan coil to heating.
+- A thermostat heating with a `RunningState` other than 1 (an iT600 can report 129, an FC600 33) was shown as idle.
+- A TS600HW hot water timer is no longer taken for a TS600 thermostat. The thermostat and preset entities it got
+  before become unavailable and can be deleted.
+- A thermostat switched off through its system mode (0) is turned on again: turning it on also sends system mode
+  heat.
+
+### Changed
+- Humidity is only read from thermostats, so battery humidity sensors are not woken up every few minutes.
+
 ## [2.3.0] - 2026-10-27
 
 ### Added

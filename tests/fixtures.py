@@ -63,7 +63,10 @@ def slider_list() -> dict[str, Any]:
     }
 
 
-def _device(device_id: str, code: str, name: str, model: str, category: str) -> dict[str, Any]:
+QUANTUM = "Quantum Thermostats"
+
+
+def _device(device_id: str, code: str, name: str, model: str, category: str, category_id: str) -> dict[str, Any]:
     return {
         "id": device_id,
         "device_code": code,
@@ -71,7 +74,7 @@ def _device(device_id: str, code: str, name: str, model: str, category: str) -> 
         "model": model,
         "dashboard_attributes": {"id": f"dash-{device_id}", "type": "device", "grid_order": "6"},
         "devices_metadata": [],
-        "category": {"name": category, "category_id": "13"},
+        "category": {"name": category, "category_id": category_id},
         "alert_communication_configs": [],
     }
 
@@ -85,9 +88,9 @@ def slider_details() -> dict[str, Any]:
             "type": "gateway",
             "gateway": GATEWAY,
             "items": [
-                _device(THERMOSTAT_ID, THERMOSTAT_CODE, "Living room thermostat", "SQ610RF", "Quantum Thermostats"),
-                _device(THERMOSTAT_2_ID, THERMOSTAT_2_CODE, "Bathroom thermostat", "SQ610RF", "Quantum Thermostats"),
-                _device(RELAY_ID, RELAY_CODE, "Living room heating", "SR600", "Smart Relays"),
+                _device(THERMOSTAT_ID, THERMOSTAT_CODE, "Living room thermostat", "SQ610RF", QUANTUM, "13"),
+                _device(THERMOSTAT_2_ID, THERMOSTAT_2_CODE, "Bathroom thermostat", "SQ610RF", QUANTUM, "13"),
+                _device(RELAY_ID, RELAY_CODE, "Living room heating", "SR600", "Smart Relays", "4"),
                 {
                     "id": GATEWAY_ID,
                     "device_code": GATEWAY_CODE,

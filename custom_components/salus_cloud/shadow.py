@@ -32,6 +32,12 @@ def endpoint(key: str) -> str:
     return key.partition(":")[0]
 
 
+def endpoint_number(key: str) -> int:
+    """Return the number of the endpoint of a property ("ep10:sOnOffS:OnOff" -> 10), -1 without one."""
+    number = endpoint(key).removeprefix("ep")
+    return int(number) if number.isdigit() else -1
+
+
 def property_name(key: str) -> str:
     """Return the property name without endpoint and cluster ("ep1:sTherS:SystemMode" -> "SystemMode")."""
     return key.rsplit(":", 1)[-1]

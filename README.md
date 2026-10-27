@@ -4,8 +4,8 @@
 [![HACS Custom](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://hacs.xyz/docs/faq/custom_repositories/)
 
 Home Assistant integration for Salus devices through the Salus Cloud (AWS Cognito login, device shadows over
-AWS IoT MQTT). Supports iT600 and iT800 (IT800TX) thermostats, relays and smart plugs, sensors and OneTouch rules;
-see [Supported devices](#supported-devices).
+AWS IoT MQTT). Supports iT600, Quantum, fan coil and iT800 (IT800TX) thermostats, TRVs, relays and smart plugs,
+roller shutters, sensors and OneTouch rules; see [Supported devices](#supported-devices).
 
 ## Highlights
 
@@ -127,11 +127,43 @@ reports something unexpected, use **Download diagnostics** on the integration an
 
 ## Supported devices
 
-- Thermostats: HTRP-RF, TS600, VS10/VS20, SQ610, FC600, **IT800TX**
-- Relays and plugs: RS600, SPE600, SR600
-- Sensors: temperature, humidity, battery
-- Binary sensors: door / window contacts (SW600, OS600), water leak (WLS600), smoke and motion sensors
+- Thermostats: **IT800TX**, iT600 (HTRP-RF, HTRS-RF, HTR-RF, TS600, VS10/VS20), Quantum (SQ610, SQ620),
+  dial RF (SQ605), IT700TX / IT710TX, fan coil (FC600), RF (RSQ800WRF), Elypso (C900T, EL600T),
+  TRVs with their own thermostat (TRV3RF, CTLV630)
+- TRVs controlled by a thermostat (it600TRV, it600MINITRV, TRV10RFM) and receivers: whether they heat
+- Relays and plugs: SR600, SC812ZB, SC824ZB, SP600, SPE600, light switches; RS600 used as one or two relays
+- Roller shutters and blinds: RS600
+- Sensors: remote temperature sensors (PS600 and others) with their battery alarm
+- Binary sensors: door / window contacts (SW600, OS600), water leak (WLS600), smoke, heat and motion sensors (MS600)
 - Buttons: OneTouch rules
+
+The models added in 2.4.0 have not been checked against real devices yet: they follow the property names the
+Salus app itself uses for them (category by category, from the Salus web app). If one of them shows something wrong,
+please open an issue with the diagnostics file.
+
+Not supported yet: hot water timers (it600HW, TS600HW), energy readings of SPE600 plugs and ECM600 meters (the
+scale of their values is not known yet), cooling and fan speed of fan coil thermostats (they are shown as heat / off),
+lights, dimmers, door locks and sirens.
+
+### How a device is recognized
+
+Each device in the Salus device list has a category (the groups of the Salus app). The integration uses it first,
+then the Salus app's model catalog, then the model name, so a device the Salus app knows gets the right entities even
+when its exact model is new.
+
+| Device | Shadow properties |
+|---|---|
+| iT600 / Quantum / dial RF / IT700TX thermostats | `ep9:sIT600TH:*` (see the table above) |
+| IT800TX, TRV3RF, RSQ800WRF, Elypso thermostats | `ep1:sTherS:*`, `ep1:sComm:HoldType` |
+| FC600 fan coil | `ep9:sTherS:*`, `ep9:sComm:HoldType`; turned off with the hold type alone, a new temperature keeps its system mode |
+| Relays and plugs | every `sOnOffS:OnOff` endpoint; the first one is shown with the device name, further ones as "Relay <n>" |
+| RS600 roller shutter (unless `ep1:sButtonS:Mode` is 1 or 3: one or two relays) | `ep1:sLevelS:CurrentLevel` (0 closed … 100 open), moved with `ep1:sLevelS:SetMoveToLevel` (`"64FFFF"` = open) |
+| Remote temperature sensors | `sTempS:MeasuredValue_x100`, `sIASZS:ErrorIASZSLowBattery` / `sPowerS:ErrorPowerSLowBattery` |
+| TRVs controlled by a thermostat, receivers | `ep6:sIT600I:RelayStatus` |
+| Contacts, leak, smoke and motion sensors | `sIASZS:ErrorIASZSAlarmed1` |
+
+The heating state of all thermostats is bit 0 of `RunningState` (an iT600 can report 129 and an FC600 33 while
+heating).
 
 ## Troubleshooting
 
@@ -169,9 +201,10 @@ Code layout (`custom_components/salus_cloud`):
 | `state.py` | Reported properties per device plus commanded values not reported yet |
 | `coordinator.py` | Polling, pushed updates, commands and thermostat mode synchronization |
 | `device.py` | `SalusDevice`: device list entry plus current shadow state, device classification |
-| `properties.py` | Property names of the iT600 and iT800 families |
+| `properties.py` | Property names of the thermostat families (iT600, iT800, sTherS outside ep1) |
 | `shadow.py` | Shadow property helpers: lookup, scaling, command names |
 | `thermostat.py`, `settings.py`, `gateway.py` | What is shown for thermostats, app settings and gateways |
+| `measurements.py` | What is shown for other devices: temperature sensors, TRV relays, battery alarms |
 | `entity.py` and the platform modules | Home Assistant entities |
 
 CI runs the tests against Home Assistant 2025.8.0 (minimum), 2026.2.3 and the latest release, ruff, plus
