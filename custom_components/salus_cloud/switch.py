@@ -10,10 +10,11 @@ from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .coordinator import SalusCloudCoordinator, SalusDevice
-from .devices import is_climate_device, is_switch_device
-from .entity import SalusEntity
-from .settings import SWITCH_SETTINGS, SwitchSetting, find_key
+from .coordinator import SalusCloudCoordinator
+from .device import SalusDevice
+from .entity import SalusEntity, SalusPropertyEntity
+from .settings import SWITCH_SETTINGS, SwitchSetting
+from .shadow import as_int
 
 
 async def async_setup_entry(
@@ -23,18 +24,16 @@ async def async_setup_entry(
 ) -> None:
     """Set up Salus Cloud relays and smart plugs."""
     coordinator: SalusCloudCoordinator = entry.runtime_data
-    entities: list[SwitchEntity] = [
-        SalusCloudSwitch(coordinator, device_id, device)
-        for device_id, device in coordinator.data.items()
-        if is_switch_device(device)
-    ]
-    for device_id, device in coordinator.data.items():
-        if not is_climate_device(device):
-            continue
-        properties = device.get("_shadow_properties") or {}
-        for setting in SWITCH_SETTINGS:
-            if (key := find_key(properties, setting.pattern)) is not None:
-                entities.append(SalusSettingSwitch(coordinator, device_id, device, setting, key))
+    entities: list[SwitchEntity] = []
+    for device in coordinator.data.values():
+        if device.is_switch:
+            entities.append(SalusCloudSwitch(coordinator, device))
+        if device.is_thermostat:
+            entities.extend(
+                SalusSettingSwitch(coordinator, device, setting, key)
+                for setting in SWITCH_SETTINGS
+                if (key := setting.find(device.properties)) is not None
+            )
     async_add_entities(entities)
 
 
@@ -56,36 +55,23 @@ class SalusCloudSwitch(SalusEntity, SwitchEntity):
         await self.coordinator.async_set_switch(self._device_id, False)
 
 
-class SalusSettingSwitch(SalusEntity, SwitchEntity):
+class SalusSettingSwitch(SalusPropertyEntity, SwitchEntity):
     """An on/off thermostat setting (key lock, display always on, optimum start/stop, frost protection)."""
 
-    _attr_has_entity_name = True
-
     def __init__(
-        self,
-        coordinator: SalusCloudCoordinator,
-        device_id: str,
-        device: SalusDevice,
-        setting: SwitchSetting,
-        key: str,
+        self, coordinator: SalusCloudCoordinator, device: SalusDevice, setting: SwitchSetting, property_key: str
     ) -> None:
         """Initialize the setting for the property found when the device was set up."""
-        super().__init__(coordinator, device_id, device)
+        super().__init__(coordinator, device, setting.key, property_key)
         self._setting = setting
-        self._property_key = key
-        del self._attr_name
-        self._attr_translation_key = setting.key
-        self._attr_unique_id = f"{self._attr_unique_id}_{setting.key}"
         if setting.config:
             self._attr_entity_category = EntityCategory.CONFIG
 
     @property
     def is_on(self) -> bool | None:
         """Return whether the setting is on."""
-        value = self.shadow_properties.get(self._property_key)
-        if not isinstance(value, int) or isinstance(value, bool):
-            return None
-        return value != self._setting.off_value
+        value = as_int(self.raw_value)
+        return None if value is None else value != self._setting.off_value
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn the setting on."""

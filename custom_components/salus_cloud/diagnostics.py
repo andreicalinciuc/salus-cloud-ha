@@ -11,7 +11,6 @@ from homeassistant.const import CONF_EMAIL, CONF_PASSWORD
 from homeassistant.core import HomeAssistant
 
 from .coordinator import SalusCloudCoordinator
-from .properties import PropertyNames
 
 # Identifiers and personal data; device models, names and shadow property names stay visible
 TO_REDACT = {
@@ -48,20 +47,18 @@ def _redact_properties(properties: dict[str, Any]) -> dict[str, Any]:
 async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry: ConfigEntry) -> dict[str, Any]:
     """Return diagnostics for a config entry."""
     coordinator: SalusCloudCoordinator = entry.runtime_data
-    devices = []
-    for device in (coordinator.data or {}).values():
-        names = device.get("_property_names")
-        devices.append(
-            {
-                "name": device.get("name"),
-                "model": device.get("model"),
-                "category": (device.get("category") or {}).get("name"),
-                "property_family": names.family if isinstance(names, PropertyNames) else None,
-                "fresh": device.get("_fresh"),
-                "shadow_device_index": device.get("_shadow_device_index"),
-                "shadow_properties": _redact_properties(device.get("_shadow_properties", {})),
-            }
-        )
+    devices = [
+        {
+            "name": device.info.get("name"),
+            "model": device.info.get("model"),
+            "category": (device.info.get("category") or {}).get("name"),
+            "property_family": device.names.family,
+            "fresh": device.fresh,
+            "shadow_device_index": device.shadow_index,
+            "shadow_properties": _redact_properties(device.properties),
+        }
+        for device in (coordinator.data or {}).values()
+    ]
     return {
         "entry": async_redact_data(dict(entry.data), TO_REDACT),
         "options": dict(entry.options),

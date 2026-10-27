@@ -11,8 +11,9 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.salus_cloud.const import DOMAIN
 from custom_components.salus_cloud.coordinator import SalusCloudCoordinator
-from custom_components.salus_cloud.settings import receiver_mode, signed_byte
-from custom_components.salus_cloud.shadow_sensors import active_errors, set_property
+from custom_components.salus_cloud.gateway import receiver_mode
+from custom_components.salus_cloud.shadow import set_property, signed_byte
+from custom_components.salus_cloud.thermostat import active_errors
 
 from . import fixtures
 from .helpers import FakeApi, FakeConnection

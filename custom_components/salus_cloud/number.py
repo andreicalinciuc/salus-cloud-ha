@@ -17,16 +17,15 @@ from homeassistant.const import EntityCategory, UnitOfTemperature
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .coordinator import SalusCloudCoordinator, SalusDevice
-from .devices import is_climate_device
-from .entity import SalusEntity
-from .settings import signed_byte
-from .shadow_sensors import find_property, scaled_value
+from .coordinator import SalusCloudCoordinator
+from .device import SalusDevice
+from .entity import SalusPropertyEntity
+from .shadow import find_property, scaled_value, signed_byte
 
 
 @dataclass(frozen=True, kw_only=True)
 class SalusNumberDescription:
-    """Thermostat setting written through its Set* shadow property."""
+    """Thermostat setting written through its Set* shadow property; key is also the translation key."""
 
     key: str
     pattern: re.Pattern[str]
@@ -86,20 +85,18 @@ async def async_setup_entry(
     """Set up thermostat settings."""
     coordinator: SalusCloudCoordinator = entry.runtime_data
     entities: list[NumberEntity] = []
-    for device_id, device in coordinator.data.items():
-        if not is_climate_device(device):
+    for device in coordinator.data.values():
+        if not device.is_thermostat:
             continue
-        properties = device.get("_shadow_properties") or {}
         for description in NUMBERS:
-            if (key := find_property(properties, description.pattern)) is not None:
-                entities.append(SalusNumber(coordinator, device_id, device, description, key))
+            if (key := find_property(device.properties, description.pattern)) is not None:
+                entities.append(SalusNumber(coordinator, device, description, key))
     async_add_entities(entities)
 
 
-class SalusNumber(SalusEntity, NumberEntity):
+class SalusNumber(SalusPropertyEntity, NumberEntity):
     """A thermostat setting."""
 
-    _attr_has_entity_name = True
     _attr_entity_category = EntityCategory.CONFIG
     _attr_device_class = NumberDeviceClass.TEMPERATURE
     _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
@@ -108,18 +105,13 @@ class SalusNumber(SalusEntity, NumberEntity):
     def __init__(
         self,
         coordinator: SalusCloudCoordinator,
-        device_id: str,
         device: SalusDevice,
         description: SalusNumberDescription,
-        key: str,
+        property_key: str,
     ) -> None:
         """Initialize the setting for the property found when the device was set up."""
-        super().__init__(coordinator, device_id, device)
+        super().__init__(coordinator, device, description.key, property_key)
         self._description = description
-        self._property_key = key
-        del self._attr_name
-        self._attr_translation_key = description.key
-        self._attr_unique_id = f"{self._attr_unique_id}_{description.key}"
         self._attr_native_step = description.step
 
     def _limit(self, pattern: re.Pattern[str] | None, default: float) -> float:
@@ -142,7 +134,7 @@ class SalusNumber(SalusEntity, NumberEntity):
     @property
     def native_value(self) -> float | None:
         """Return the current setting."""
-        raw = self.shadow_properties.get(self._property_key)
+        raw = self.raw_value
         if self._description.signed_byte:
             raw = signed_byte(raw)
         return scaled_value(self._property_key, raw)

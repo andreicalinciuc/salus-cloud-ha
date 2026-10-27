@@ -71,9 +71,3 @@ def detect_property_names(properties: dict[str, Any]) -> PropertyNames:
     if any(name.startswith(_IT800_PREFIXES) for name in properties):
         return IT800
     return DEFAULT_PROPERTY_NAMES
-
-
-def property_names_of(device: dict[str, Any]) -> PropertyNames:
-    """Return the property names resolved for a device."""
-    names = device.get("_property_names")
-    return names if isinstance(names, PropertyNames) else DEFAULT_PROPERTY_NAMES

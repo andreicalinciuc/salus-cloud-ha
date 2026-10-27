@@ -117,7 +117,23 @@ reports something unexpected, use **Download diagnostics** on the integration an
 - Binary sensors: WLS door/window, motion
 - Buttons: OneTouch rules
 
-Full feature documentation: [custom_components/salus_cloud/README.md](custom_components/salus_cloud/README.md).
+## Troubleshooting
+
+- **Invalid email or password:** check the login in the Salus app and use the email address, not a username.
+  Accounts with two-factor authentication are not supported.
+- **No devices found:** make sure the devices are paired in the Salus app and the gateway is online, then reload
+  the integration.
+- **Reading works but control does not:** Home Assistant must reach `*.iot.eu-central-1.amazonaws.com` on port 443.
+- **A device reports something unexpected:** device page → ⋮ → **Download diagnostics** and attach the file to an
+  [issue](https://github.com/andreicalinciuc/salus-cloud-ha/issues).
+
+Debug logging:
+
+```yaml
+logger:
+  logs:
+    custom_components.salus_cloud: debug
+```
 
 ## Development
 
@@ -127,10 +143,26 @@ pip install -r requirements_test.txt
 pytest
 ```
 
+Code layout (`custom_components/salus_cloud`):
+
+| Module | Purpose |
+|---|---|
+| `api.py` | Salus Cloud REST API: Cognito login, gateways and devices, device shadows, AWS IoT credentials |
+| `mqtt.py` | AWS IoT MQTT connection: sends commands, receives pushed shadow documents |
+| `state.py` | Reported properties per device plus commanded values not reported yet |
+| `coordinator.py` | Polling, pushed updates, commands and thermostat mode synchronization |
+| `device.py` | `SalusDevice`: device list entry plus current shadow state, device classification |
+| `properties.py` | Property names of the iT600 and iT800 families |
+| `shadow.py` | Shadow property helpers: lookup, scaling, command names |
+| `thermostat.py`, `settings.py`, `gateway.py` | What is shown for thermostats, app settings and gateways |
+| `entity.py` and the platform modules | Home Assistant entities |
+
 CI runs the tests against Home Assistant 2025.8.0 (minimum), 2026.2.3 and the latest release, plus
 [hassfest](https://github.com/home-assistant/actions) and the [HACS action](https://hacs.xyz/docs/publish/action/).
 
+Pull requests are welcome; every change to `main` goes through a pull request reviewed by the maintainer
+([CODEOWNERS](.github/CODEOWNERS)).
+
 ## License
 
-MIT. See [LICENSE](LICENSE). © 2025 Salus iT600 Cloud Integration Contributors,
-© 2026 Andrei Calinciuc.
+MIT. See [LICENSE](LICENSE).

@@ -1,4 +1,4 @@
-"""Base entity for Salus Cloud devices."""
+"""Base entities of Salus devices and gateways."""
 
 from __future__ import annotations
 
@@ -8,53 +8,78 @@ from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN
-from .coordinator import SalusCloudCoordinator, SalusDevice
-from .properties import PropertyNames, property_names_of
+from .coordinator import SalusCloudCoordinator
+from .device import SalusDevice
+from .properties import DEFAULT_PROPERTY_NAMES, PropertyNames
 
 
 class SalusEntity(CoordinatorEntity[SalusCloudCoordinator]):
-    """Entity of a Salus device backed by coordinator data."""
+    """Entity of a Salus device backed by coordinator data.
 
-    _attr_has_entity_name = False  # Name includes gateway name to keep entity ids of multiple apartments apart
+    With a key the entity gets a short translated name under its device ("Humidity") and the key appended to its
+    unique id. Without one it is named "<gateway> <device>", which keeps entity ids of several homes apart.
+    """
 
-    def __init__(self, coordinator: SalusCloudCoordinator, device_id: str, device: SalusDevice) -> None:
+    def __init__(self, coordinator: SalusCloudCoordinator, device: SalusDevice, key: str | None = None) -> None:
         """Initialize the entity."""
         super().__init__(coordinator)
-        self._device_id = device_id
-        gateway_id = device.get("_gateway_id", "")
-        gateway = coordinator.get_gateway(gateway_id)
-        self._attr_name = f"{gateway.name if gateway else 'Salus'} {device.get('name') or device_id}"
-        self._attr_unique_id = f"{DOMAIN}_{gateway_id}_{device_id}"
+        self._device_id = device.id
         self._attr_device_info = coordinator.device_info(device)
+        unique_id = f"{DOMAIN}_{device.gateway_id}_{device.id}"
+        if key is None:
+            gateway = coordinator.get_gateway(device.gateway_id)
+            self._attr_has_entity_name = False
+            self._attr_name = f"{gateway.name if gateway else 'Salus'} {device.name}"
+            self._attr_unique_id = unique_id
+        else:
+            self._attr_has_entity_name = True
+            self._attr_translation_key = key
+            self._attr_unique_id = f"{unique_id}_{key}"
 
     @property
-    def device_data(self) -> SalusDevice:
+    def device(self) -> SalusDevice | None:
         """Return current data of the device."""
-        return self.coordinator.get_device(self._device_id) or {}
+        return self.coordinator.get_device(self._device_id)
 
     @property
     def shadow_properties(self) -> dict[str, Any]:
         """Return current shadow properties of the device."""
-        return self.device_data.get("_shadow_properties", {})
+        return self.device.properties if self.device else {}
 
     @property
     def property_names(self) -> PropertyNames:
         """Return shadow property names used by this device family."""
-        return property_names_of(self.device_data)
+        device = self.device
+        return device.names if device else DEFAULT_PROPERTY_NAMES
 
     @property
     def available(self) -> bool:
         """Return whether recent state data of the device is known."""
-        return super().available and bool(self.device_data.get("_fresh"))
+        device = self.device
+        return super().available and device is not None and device.fresh
+
+
+class SalusPropertyEntity(SalusEntity):
+    """Entity showing one shadow property of a device, found when the device was set up."""
+
+    def __init__(self, coordinator: SalusCloudCoordinator, device: SalusDevice, key: str, property_key: str) -> None:
+        """Initialize the entity for the property."""
+        super().__init__(coordinator, device, key)
+        self._property_key = property_key
+
+    @property
+    def raw_value(self) -> Any:
+        """Return the reported value of the property."""
+        return self.shadow_properties.get(self._property_key)
 
 
 class SalusGatewayEntity(CoordinatorEntity[SalusCloudCoordinator]):
-    """Entity of a value a gateway (e.g. the Wi-Fi receiver switching the boiler) reports."""
+    """Entity showing one property a gateway reports, found when the integration was set up."""
 
     _attr_has_entity_name = True
 
     def __init__(self, coordinator: SalusCloudCoordinator, gateway_id: str, key: str, property_key: str) -> None:
-        """Initialize the entity for the gateway property found when the integration was set up."""
+        """Initialize the entity for the property."""
         super().__init__(coordinator)
         self._gateway_id = gateway_id
         self._property_key = property_key

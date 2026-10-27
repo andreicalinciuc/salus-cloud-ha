@@ -13,10 +13,11 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .coordinator import SalusCloudCoordinator, SalusDevice
-from .devices import is_climate_device
-from .entity import SalusEntity
-from .settings import SELECT_SETTINGS, SelectSetting, find_key
+from .coordinator import SalusCloudCoordinator
+from .device import SalusDevice
+from .entity import SalusPropertyEntity
+from .settings import SELECT_SETTINGS, SelectSetting
+from .shadow import as_int
 
 
 async def async_setup_entry(
@@ -26,46 +27,36 @@ async def async_setup_entry(
 ) -> None:
     """Set up thermostat settings with a list of values."""
     coordinator: SalusCloudCoordinator = entry.runtime_data
-    entities: list[SelectEntity] = []
-    for device_id, device in coordinator.data.items():
-        if not is_climate_device(device):
-            continue
-        properties = device.get("_shadow_properties") or {}
-        for setting in SELECT_SETTINGS:
-            if (key := find_key(properties, setting.pattern)) is not None:
-                entities.append(SalusSettingSelect(coordinator, device_id, device, setting, key))
-    async_add_entities(entities)
+    async_add_entities(
+        [
+            SalusSettingSelect(coordinator, device, setting, key)
+            for device in coordinator.data.values()
+            if device.is_thermostat
+            for setting in SELECT_SETTINGS
+            if (key := setting.find(device.properties)) is not None
+        ]
+    )
 
 
-class SalusSettingSelect(SalusEntity, SelectEntity):
+class SalusSettingSelect(SalusPropertyEntity, SelectEntity):
     """A thermostat setting with a fixed list of values."""
 
-    _attr_has_entity_name = True
     _attr_entity_category = EntityCategory.CONFIG
 
     def __init__(
-        self,
-        coordinator: SalusCloudCoordinator,
-        device_id: str,
-        device: SalusDevice,
-        setting: SelectSetting,
-        key: str,
+        self, coordinator: SalusCloudCoordinator, device: SalusDevice, setting: SelectSetting, property_key: str
     ) -> None:
         """Initialize the setting for the property found when the device was set up."""
-        super().__init__(coordinator, device_id, device)
+        super().__init__(coordinator, device, setting.key, property_key)
         self._setting = setting
-        self._property_key = key
         self._values = {option: value for value, option in setting.options.items()}
-        del self._attr_name
-        self._attr_translation_key = setting.key
-        self._attr_unique_id = f"{self._attr_unique_id}_{setting.key}"
         self._attr_options = list(setting.options.values())
 
     @property
     def current_option(self) -> str | None:
         """Return the current value, or None when the device reports a value the Salus app does not offer."""
-        value = self.shadow_properties.get(self._property_key)
-        return self._setting.options.get(value) if isinstance(value, int) and not isinstance(value, bool) else None
+        value = as_int(self.raw_value)
+        return None if value is None else self._setting.options.get(value)
 
     async def async_select_option(self, option: str) -> None:
         """Send the selected value to the thermostat."""

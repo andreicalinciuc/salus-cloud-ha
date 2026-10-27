@@ -9,7 +9,8 @@ from homeassistant.components.sensor import SensorDeviceClass
 from custom_components.salus_cloud import binary_sensor, sensor
 from custom_components.salus_cloud.binary_sensor import SalusHeatingBinarySensor
 from custom_components.salus_cloud.sensor import SalusShadowSensor
-from custom_components.salus_cloud.shadow_sensors import SHADOW_SENSORS, find_property, scaled_value
+from custom_components.salus_cloud.shadow import find_property, scaled_value
+from custom_components.salus_cloud.thermostat import SHADOW_SENSORS
 
 from . import fixtures
 from .helpers import FakeApi, create_coordinator
@@ -145,8 +146,8 @@ async def test_climate_reports_humidity() -> None:
     api = FakeApi()
     api.shadows[fixtures.THERMOSTAT_CODE] = _it800_shadow(**{"ep1:sHumiS:MeasuredValue_x100": 5100})
     coordinator, _, _ = await create_coordinator(api)
-    entity = SalusCloudClimate(coordinator, fixtures.THERMOSTAT_ID, coordinator.data[fixtures.THERMOSTAT_ID])
-    other = SalusCloudClimate(coordinator, fixtures.THERMOSTAT_2_ID, coordinator.data[fixtures.THERMOSTAT_2_ID])
+    entity = SalusCloudClimate(coordinator, coordinator.data[fixtures.THERMOSTAT_ID])
+    other = SalusCloudClimate(coordinator, coordinator.data[fixtures.THERMOSTAT_2_ID])
 
     assert entity.current_humidity == 51.0
     assert other.current_humidity is None
@@ -186,7 +187,7 @@ async def test_sq610_humidity_from_sunny_setpoint(raw: int, expected: float) -> 
     api.shadows[fixtures.THERMOSTAT_CODE] = shadow
     sensors = _by_suffix(await _setup(sensor, api), SalusShadowSensor)
     coordinator, _, _ = await create_coordinator(api)
-    climate = SalusCloudClimate(coordinator, fixtures.THERMOSTAT_ID, coordinator.data[fixtures.THERMOSTAT_ID])
+    climate = SalusCloudClimate(coordinator, coordinator.data[fixtures.THERMOSTAT_ID])
 
     assert sensors["current_humidity"].native_value == expected
     assert climate.current_humidity == expected
@@ -195,7 +196,7 @@ async def test_sq610_humidity_from_sunny_setpoint(raw: int, expected: float) -> 
 async def test_sunny_setpoint_is_not_humidity_on_other_models() -> None:
     """Only SQ610 models use SunnySetpoint for humidity."""
 
-    from custom_components.salus_cloud.shadow_sensors import humidity_property
+    from custom_components.salus_cloud.thermostat import humidity_property
 
     assert humidity_property("TS600", {"ep9:sIT600TH:SunnySetpoint_x100": 2100}) is None
     assert humidity_property("SQ610RF", {"ep9:sIT600TH:SunnySetpoint_x100": 45}) == "ep9:sIT600TH:SunnySetpoint_x100"

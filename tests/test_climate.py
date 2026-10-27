@@ -8,14 +8,14 @@ from homeassistant.components.climate import ClimateEntityFeature, HVACAction, H
 
 from custom_components.salus_cloud import climate
 from custom_components.salus_cloud.climate import SalusCloudClimate
-from custom_components.salus_cloud.devices import is_climate_device
+from custom_components.salus_cloud.device import SalusDevice
 
 from . import fixtures
 from .helpers import CALL_LATER, FakeApi, create_coordinator
 
 
 def _entity(coordinator: object, device_id: str = fixtures.THERMOSTAT_ID) -> SalusCloudClimate:
-    entity = SalusCloudClimate(coordinator, device_id, coordinator.data[device_id])
+    entity = SalusCloudClimate(coordinator, coordinator.data[device_id])
     entity.hass = MagicMock()
     entity.async_write_ha_state = MagicMock()
     return entity
@@ -24,7 +24,7 @@ def _entity(coordinator: object, device_id: str = fixtures.THERMOSTAT_ID) -> Sal
 def test_it800_model_is_a_thermostat() -> None:
     """An IT800TX is a thermostat even when its name has been customised."""
 
-    assert is_climate_device({"model": "IT800TX", "name": "Kitchen"})
+    assert SalusDevice(id="t", code="c", gateway_id="g", info={"model": "IT800TX", "name": "Kitchen"}).is_thermostat
 
 
 async def test_setup_creates_thermostats_only() -> None:

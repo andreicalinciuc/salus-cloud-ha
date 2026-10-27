@@ -39,11 +39,13 @@ from .const import (
     SCAN_INTERVAL_SECONDS,
     STALE_AFTER_SECONDS,
 )
-from .devices import is_climate_device
+from .device import SalusDevice
+from .gateway import FIRMWARE_PATTERN as GATEWAY_FIRMWARE_PATTERN
+from .gateway import HARDWARE_PATTERN as GATEWAY_HARDWARE_PATTERN
 from .mqtt import SalusMqttConnection
-from .properties import detect_property_names, property_names_of
-from .shadow_sensors import find_property, set_property
-from .state import DeviceStateStore, extract_all_reported, extract_reported
+from .properties import detect_property_names
+from .shadow import find_property, set_property, version_string
+from .state import DeviceStateStore, extract_reported
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -52,10 +54,6 @@ HARDWARE_PATTERN = re.compile(r"^sBasicS:HardwareVersion$")
 
 # DeviceInfo gained via_device_id (and deprecated via_device) in a 2026 Home Assistant release
 VIA_DEVICE_ID_SUPPORTED = "via_device_id" in DeviceInfo.__annotations__
-
-# Device from the Salus device list extended with "_gateway_id", "_shadow_properties",
-# "_property_names", "_shadow_device_index" and "_fresh"
-type SalusDevice = dict[str, Any]
 
 
 class SalusCloudCoordinator(DataUpdateCoordinator[dict[str, SalusDevice]]):
@@ -118,18 +116,25 @@ class SalusCloudCoordinator(DataUpdateCoordinator[dict[str, SalusDevice]]):
     def device_info(self, device: SalusDevice) -> DeviceInfo:
         """Return device registry info of a device linked to its gateway."""
         info = DeviceInfo(
-            identifiers={(DOMAIN, device["id"])},
-            name=device.get("name") or device["id"],
+            identifiers={(DOMAIN, device.id)},
+            name=device.name,
             manufacturer="Salus",
-            model=device.get("model") or "iT600",
+            model=device.model or "iT600",
         )
-        properties = device.get("_shadow_properties") or {}
-        if isinstance(firmware := properties.get(find_property(properties, FIRMWARE_PATTERN) or ""), (str, int)):
-            info["sw_version"] = str(firmware)
-        if isinstance(hardware := properties.get(find_property(properties, HARDWARE_PATTERN) or ""), (str, int)):
-            info["hw_version"] = str(hardware)
-        self.link_to_gateway(info, device.get("_gateway_id", ""))
+        if (firmware := _version(device.properties, FIRMWARE_PATTERN)) is not None:
+            info["sw_version"] = firmware
+        if (hardware := _version(device.properties, HARDWARE_PATTERN)) is not None:
+            info["hw_version"] = hardware
+        self.link_to_gateway(info, device.gateway_id)
         return info
+
+    def gateway_versions(self, gateway_id: str) -> tuple[str | None, str | None]:
+        """Return software and hardware version a gateway reports."""
+        properties = self.gateway_properties(gateway_id)
+        return (
+            _version(properties, GATEWAY_FIRMWARE_PATTERN, with_endpoint=True),
+            _version(properties, GATEWAY_HARDWARE_PATTERN, with_endpoint=True),
+        )
 
     def link_to_gateway(self, info: DeviceInfo, gateway_id: str) -> None:
         """Show a device as connected via its gateway.
@@ -162,9 +167,7 @@ class SalusCloudCoordinator(DataUpdateCoordinator[dict[str, SalusDevice]]):
         return {gateway.device_code for gateway in self.gateways if gateway.device_code}
 
     def _store_reported(self, device_code: str, shadow: dict[str, Any], now: float) -> None:
-        # Gateways report several indexes (the gateway itself, its coordinator); devices report one
-        extract = extract_all_reported if device_code in self._gateway_codes() else extract_reported
-        if (reported := extract(shadow)) is not None:
+        if (reported := extract_reported(shadow, all_indexes=device_code in self._gateway_codes())) is not None:
             self._store.update_reported(device_code, reported[0], reported[1], now)
 
     async def _async_update_gateways(self, now: float) -> None:
@@ -225,13 +228,16 @@ class SalusCloudCoordinator(DataUpdateCoordinator[dict[str, SalusDevice]]):
             if not device_id or not device_code:
                 continue
             properties = self._store.properties(device_code, now)
-            data[device_id] = {
-                **device,
-                "_shadow_properties": properties,
-                "_property_names": detect_property_names(properties),
-                "_shadow_device_index": self._store.index(device_code),
-                "_fresh": self._store.is_fresh(device_code, now),
-            }
+            data[device_id] = SalusDevice(
+                id=device_id,
+                code=device_code,
+                gateway_id=device.get("_gateway_id", ""),
+                info=device,
+                properties=properties,
+                names=detect_property_names(properties),
+                shadow_index=self._store.index(device_code),
+                fresh=self._store.is_fresh(device_code, now),
+            )
         return data
 
     async def async_start_connection(self) -> None:
@@ -272,18 +278,14 @@ class SalusCloudCoordinator(DataUpdateCoordinator[dict[str, SalusDevice]]):
         """Return the thermostats a mode change applies to (all of the gateway when synchronized)."""
         if not self.sync_modes:
             return [device]
-        return [
-            other
-            for other in self.data.values()
-            if other.get("_gateway_id") == device.get("_gateway_id") and is_climate_device(other)
-        ]
+        return [other for other in self.data.values() if other.gateway_id == device.gateway_id and other.is_thermostat]
 
     async def async_set_hold_type(self, device_id: str, hold_type: int) -> None:
         """Set hold type of a thermostat, or of all thermostats of its gateway when modes are synchronized."""
         device = self._require_device(device_id)
         await self._async_send(
             self._thermostat_targets(device),
-            lambda target: {property_names_of(target).set_hold_type: hold_type},
+            lambda target: {target.names.set_hold_type: hold_type},
         )
 
     async def async_set_hvac_mode(self, device_id: str, turn_on: bool) -> None:
@@ -296,7 +298,7 @@ class SalusCloudCoordinator(DataUpdateCoordinator[dict[str, SalusDevice]]):
         device = self._require_device(device_id)
 
         def command(target: SalusDevice) -> dict[str, Any]:
-            names = property_names_of(target)
+            names = target.names
             if names.hvac_mode_uses_system_mode:
                 return {
                     names.set_system_mode: 4 if turn_on else 0,
@@ -311,7 +313,7 @@ class SalusCloudCoordinator(DataUpdateCoordinator[dict[str, SalusDevice]]):
         device = self._require_device(device_id)
 
         def command(target: SalusDevice) -> dict[str, Any]:
-            names = property_names_of(target)
+            names = target.names
             return {
                 names.set_heating_setpoint: round(temperature * 100),
                 names.set_hold_type: HOLD_TYPE_MANUAL,
@@ -327,7 +329,7 @@ class SalusCloudCoordinator(DataUpdateCoordinator[dict[str, SalusDevice]]):
     async def async_set_switch(self, device_id: str, turn_on: bool) -> None:
         """Turn relay or smart plug on or off."""
         device = self._require_device(device_id)
-        await self._async_send([device], lambda target: {property_names_of(target).set_on_off: 1 if turn_on else 0})
+        await self._async_send([device], lambda target: {target.names.set_on_off: 1 if turn_on else 0})
 
     async def async_trigger_rule(self, gateway_id: str, rule_trigger_key: str) -> None:
         """Trigger a OneTouch rule of a gateway."""
@@ -360,11 +362,7 @@ class SalusCloudCoordinator(DataUpdateCoordinator[dict[str, SalusDevice]]):
         prepared = [(device, properties(device) if callable(properties) else properties) for device in devices]
         results = await asyncio.gather(
             *(
-                self._async_publish(
-                    device["device_code"],
-                    device.get("_shadow_device_index") or DEFAULT_SHADOW_INDEX,
-                    device_properties,
-                )
+                self._async_publish(device.code, device.shadow_index or DEFAULT_SHADOW_INDEX, device_properties)
                 for device, device_properties in prepared
             ),
             return_exceptions=True,
@@ -373,10 +371,10 @@ class SalusCloudCoordinator(DataUpdateCoordinator[dict[str, SalusDevice]]):
         failed: list[str] = []
         for (device, device_properties), result in zip(prepared, results, strict=True):
             if isinstance(result, BaseException):
-                _LOGGER.warning("Device %s did not accept %s: %s", device.get("name"), device_properties, result)
-                failed.append((device.get("name") or device["device_code"]).strip())
+                _LOGGER.warning("Device %s did not accept %s: %s", device.name, device_properties, result)
+                failed.append(device.name.strip())
             else:
-                self._store.set_pending(device["device_code"], device_properties, now)
+                self._store.set_pending(device.code, device_properties, now)
         if len(failed) < len(devices):
             self.async_set_updated_data(self._build_data(now))
             if not self.push_available:
@@ -395,3 +393,7 @@ class SalusCloudCoordinator(DataUpdateCoordinator[dict[str, SalusDevice]]):
     async def _async_confirmation_refresh(self, _now: datetime) -> None:
         self._cancel_confirmation = None
         await self.async_request_refresh()
+
+
+def _version(properties: dict[str, Any], pattern: re.Pattern[str], *, with_endpoint: bool = False) -> str | None:
+    return version_string(properties.get(find_property(properties, pattern, with_endpoint=with_endpoint) or ""))

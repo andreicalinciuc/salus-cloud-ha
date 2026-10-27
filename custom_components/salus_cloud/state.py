@@ -5,32 +5,22 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
-
-def reported_property(desired: str) -> str:
-    """Return the reported property name of a "Set*" desired property."""
-    prefix, separator, name = desired.partition(":Set")
-    return f"{prefix}:{name}" if separator else desired
+from .shadow import reported_property
 
 
-def extract_reported(shadow: dict[str, Any]) -> tuple[str, dict[str, Any]] | None:
-    """Return device index and reported properties from a shadow document."""
+def extract_reported(shadow: dict[str, Any], *, all_indexes: bool = False) -> tuple[str, dict[str, Any]] | None:
+    """Return the device index and the reported properties of a shadow document.
 
-    reported = shadow.get("state", {}).get("reported") or {}
-    for index, value in reported.items():
-        if isinstance(value, dict) and isinstance(value.get("properties"), dict):
-            return index, value["properties"]
-    return None
-
-
-def extract_all_reported(shadow: dict[str, Any]) -> tuple[str, dict[str, Any]] | None:
-    """Return the first device index and the properties of all indexes of a shadow document (gateways report
-    several, e.g. the gateway itself and its coordinator)."""
-
+    A device reports its properties under one index. Gateways report several (the gateway itself, its Zigbee
+    coordinator); with all_indexes the properties of all of them are merged under the first index.
+    """
     reported = shadow.get("state", {}).get("reported") or {}
     first: str | None = None
     merged: dict[str, Any] = {}
     for index, value in reported.items():
         if isinstance(value, dict) and isinstance(value.get("properties"), dict):
+            if not all_indexes:
+                return index, value["properties"]
             first = first or index
             merged.update(value["properties"])
     return (first, merged) if first is not None else None
@@ -60,7 +50,6 @@ class DeviceStateStore:
 
     def update_reported(self, device_code: str, index: str, properties: dict[str, Any], now: float) -> None:
         """Merge properties reported by the device."""
-
         device = self._devices.setdefault(device_code, _DeviceState())
         device.index = index
         device.reported.update(properties)
@@ -71,14 +60,12 @@ class DeviceStateStore:
 
     def set_pending(self, device_code: str, desired: dict[str, Any], now: float) -> None:
         """Remember commanded desired properties until the device reports them."""
-
         device = self._devices.setdefault(device_code, _DeviceState())
         for name, value in desired.items():
             device.pending[reported_property(name)] = (value, now + self._pending_timeout)
 
     def properties(self, device_code: str, now: float) -> dict[str, Any]:
         """Return reported properties overridden by commanded changes the device has not reported yet."""
-
         device = self._devices.get(device_code)
         if device is None:
             return {}
@@ -87,12 +74,10 @@ class DeviceStateStore:
 
     def index(self, device_code: str) -> str | None:
         """Return shadow device index of the device."""
-
         device = self._devices.get(device_code)
         return device.index if device else None
 
     def is_fresh(self, device_code: str, now: float) -> bool:
         """Return whether the device reported its state recently enough."""
-
         device = self._devices.get(device_code)
         return device is not None and device.reported_at is not None and now - device.reported_at <= self._max_age

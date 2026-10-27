@@ -1,4 +1,4 @@
-"""Thermostat settings and gateway (receiver) values the Salus app shows, as found in its iT800 device model.
+"""Thermostat settings of the Salus app (Settings and Advanced settings of an IT800TX).
 
 Settings are written through the matching Set* shadow property with the values the Salus app sends. They are
 limited to the iT800 family (ep1 properties): iT600 (ep9) devices use other value encodings for the same names.
@@ -11,18 +11,37 @@ import re
 from dataclasses import dataclass
 from typing import Any
 
-# Thermostat settings in the Salus app: Settings and Advanced settings of an IT800TX
+from .shadow import find_property
 
 
 @dataclass(frozen=True, kw_only=True)
-class SwitchSetting:
-    """On/off setting."""
+class Setting:
+    """Setting stored in one shadow property; key is also the translation key."""
 
     key: str
+    # Matches the full property name (with endpoint)
     pattern: re.Pattern[str]
+
+    def find(self, properties: dict[str, Any]) -> str | None:
+        """Return the property of the device holding this setting, None when the device does not report it."""
+        return find_property(properties, self.pattern, with_endpoint=True)
+
+
+@dataclass(frozen=True, kw_only=True)
+class SwitchSetting(Setting):
+    """On/off setting."""
+
     on_value: int = 1
     off_value: int = 0
+    # Shown under the device's configuration; the key lock is shown as a control
     config: bool = True
+
+
+@dataclass(frozen=True, kw_only=True)
+class SelectSetting(Setting):
+    """Setting with a fixed list of values: reported value -> option (translation key)."""
+
+    options: dict[int, str]
 
 
 SWITCH_SETTINGS: tuple[SwitchSetting, ...] = (
@@ -34,16 +53,6 @@ SWITCH_SETTINGS: tuple[SwitchSetting, ...] = (
     # The app's "Frost protection" setting writes HolidayActive
     SwitchSetting(key="frost_protection", pattern=re.compile(r"^ep1:sComm:HolidayActive$")),
 )
-
-
-@dataclass(frozen=True, kw_only=True)
-class SelectSetting:
-    """Setting with a fixed list of values; options are translation keys."""
-
-    key: str
-    pattern: re.Pattern[str]
-    options: dict[int, str]
-
 
 SELECT_SETTINGS: tuple[SelectSetting, ...] = (
     SelectSetting(
@@ -73,39 +82,6 @@ SELECT_SETTINGS: tuple[SelectSetting, ...] = (
 )
 
 
-def find_key(properties: dict[str, Any], pattern: re.Pattern[str]) -> str | None:
-    """Return the first reported property (sorted) whose full name matches the pattern."""
-    return next((key for key in sorted(properties) if pattern.search(key)), None)
-
-
-# Temperature calibration is reported as an unsigned byte (-0.5 °C comes back as 251) but written signed (-5)
-def signed_byte(raw: Any) -> Any:
-    """Return a value reported as an unsigned byte as the signed value it stands for."""
-    if isinstance(raw, int) and not isinstance(raw, bool) and 127 < raw < 256:
-        return raw - 256
-    return raw
-
-
-# Gateway / Wi-Fi receiver (e.g. the IT800 receiver that switches the boiler)
-
-# Boiler relay of the receiver (1 on)
-GATEWAY_RELAY_PATTERN = re.compile(r"^ep\d+:sComm:RelayStatus$")
-# Receiver mode as the app decodes it: bit 1 set = manual (on the receiver's switch), bit 0 set = relay off
-GATEWAY_PANEL_SWITCH_PATTERN = re.compile(r"^ep\d+:sComm:PanelSwitchStatus$")
-RECEIVER_MODE_OPTIONS = ["auto", "manual_on", "manual_off"]
-
-
-def receiver_mode(raw: Any) -> str | None:
-    """Return auto / manual_on / manual_off from PanelSwitchStatus."""
-    if not isinstance(raw, int) or isinstance(raw, bool):
-        return None
-    if not raw & 0b10:
-        return "auto"
-    return "manual_off" if raw & 0b01 else "manual_on"
-
-
-GATEWAY_FIRMWARE_PATTERN = re.compile(r"^ep\d+:(?:sZDO:FirmwareVersion|sGateway:GatewaySoftwareVersion)$")
-GATEWAY_HARDWARE_PATTERN = re.compile(r"^ep\d+:sGateway:GatewayHardwareVersion$")
-# Wi-Fi gateway (e.g. SAWZ600GW): signal strength in dBm and the connection to Salus Cloud (1 connected)
-GATEWAY_RSSI_PATTERN = re.compile(r"^ep\d+:sGateway:WiFiRSSI$")
-GATEWAY_CLOUD_PATTERN = re.compile(r"^ep\d+:sAWSIoT:CloudStatus$")
+def is_setting(key: str) -> bool:
+    """Return whether the property is shown as a setting (and so not as a read-only sensor)."""
+    return any(setting.pattern.search(key) for setting in (*SWITCH_SETTINGS, *SELECT_SETTINGS))

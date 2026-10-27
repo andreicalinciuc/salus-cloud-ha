@@ -3,6 +3,16 @@
 All notable changes to this project are documented in this file. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [2.1.0] - 2026-10-27
+
+### Changed
+- Code reorganized for readability; entities, names, unique ids and behaviour are unchanged:
+  - devices are typed objects (`device.py`) instead of dictionaries with `_`-prefixed keys;
+  - shadow property helpers live in one module (`shadow.py`), thermostat values in `thermostat.py`, gateway values
+    in `gateway.py` and app settings in `settings.py`;
+  - entities showing one shadow property share a base class, so each platform only describes what it shows.
+- Documentation consolidated into the README and this changelog.
+
 ## [2.0.1] - 2026-10-27
 
 Checked against a real IT800 system (SAWZ600GW Wi-Fi gateway with an IT800TX thermostat).
@@ -106,3 +116,7 @@ First release of Salus Cloud.
 - Diagnostics download with the raw shadow properties of every device; credentials, device codes and personal
   data are redacted.
 - GitHub Actions CI: pytest on Home Assistant 2025.8.0 (minimum) and the latest release, hassfest, HACS validation.
+
+[2.1.0]: https://github.com/andreicalinciuc/salus-cloud-ha/compare/v2.0.1...v2.1.0
+[2.0.1]: https://github.com/andreicalinciuc/salus-cloud-ha/compare/v2.0.0...v2.0.1
+[2.0.0]: https://github.com/andreicalinciuc/salus-cloud-ha/releases/tag/v2.0.0

@@ -17,17 +17,11 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import HOLD_TYPE_MANUAL, HOLD_TYPE_SCHEDULE, HOLD_TYPE_STANDBY
-from .coordinator import SalusCloudCoordinator, SalusDevice
-from .devices import is_climate_device
+from .coordinator import SalusCloudCoordinator
+from .device import SalusDevice
 from .entity import SalusEntity
-from .shadow_sensors import (
-    MAX_HEAT_SETPOINT_PATTERN,
-    MIN_HEAT_SETPOINT_PATTERN,
-    find_property,
-    humidity_property,
-    humidity_value,
-    scaled_value,
-)
+from .shadow import as_number, find_property, scaled_value
+from .thermostat import MAX_HEAT_SETPOINT_PATTERN, MIN_HEAT_SETPOINT_PATTERN, humidity_property, humidity_value
 
 PRESET_SCHEDULE = "schedule"
 PRESET_MANUAL = "manual"
@@ -55,11 +49,7 @@ async def async_setup_entry(
     """Set up Salus Cloud thermostats."""
     coordinator: SalusCloudCoordinator = entry.runtime_data
     async_add_entities(
-        [
-            SalusCloudClimate(coordinator, device_id, device)
-            for device_id, device in coordinator.data.items()
-            if is_climate_device(device)
-        ]
+        [SalusCloudClimate(coordinator, device) for device in coordinator.data.values() if device.is_thermostat]
     )
 
 
@@ -67,8 +57,6 @@ class SalusCloudClimate(SalusEntity, ClimateEntity):
     """Salus thermostat."""
 
     _attr_temperature_unit = UnitOfTemperature.CELSIUS
-    # The thermostat is the main feature of its device: it is shown with the device name only
-    _attr_has_entity_name = True
     # Labels and icons of the presets (schedule / manual / away) come from translations and icons.json
     _attr_translation_key = "thermostat"
     _attr_supported_features = (
@@ -81,9 +69,11 @@ class SalusCloudClimate(SalusEntity, ClimateEntity):
     _attr_preset_modes = [PRESET_SCHEDULE, PRESET_MANUAL, PRESET_AWAY]
     _attr_target_temperature_step = 0.5
 
-    def __init__(self, coordinator: SalusCloudCoordinator, device_id: str, device: SalusDevice) -> None:
+    def __init__(self, coordinator: SalusCloudCoordinator, device: SalusDevice) -> None:
         """Initialize the thermostat; existing entity ids are kept by the entity registry."""
-        super().__init__(coordinator, device_id, device)
+        super().__init__(coordinator, device)
+        # The thermostat is the main feature of its device: it is shown with the device name only
+        self._attr_has_entity_name = True
         self._attr_name = None
 
     def _limit(self, pattern: re.Pattern[str], default: float) -> float:
@@ -104,7 +94,7 @@ class SalusCloudClimate(SalusEntity, ClimateEntity):
         return self._limit(MAX_HEAT_SETPOINT_PATTERN, 35.0)
 
     def _temperature(self, name: str) -> float | None:
-        value = self.shadow_properties.get(name)
+        value = as_number(self.shadow_properties.get(name))
         return value / 100 if value is not None else None
 
     @property
@@ -116,7 +106,7 @@ class SalusCloudClimate(SalusEntity, ClimateEntity):
     def current_humidity(self) -> float | None:
         """Return the measured relative humidity when the thermostat reports one."""
         properties = self.shadow_properties
-        if (key := humidity_property(self.device_data.get("model"), properties)) is None:
+        if (key := humidity_property(self.device.model if self.device else None, properties)) is None:
             return None
         return humidity_value(key, properties[key])
 
