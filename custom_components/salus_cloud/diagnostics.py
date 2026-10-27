@@ -28,10 +28,10 @@ TO_REDACT = {
 
 
 # Network details, hardware addresses, cloud identities and debug logs a gateway may report (Wi-Fi name and
-# password, IP addresses, MAC / EUI, AWS certificate, device list)
+# password, IP addresses, MAC / EUI, AWS certificate, device list), and a thermostat's key lock PIN
 NETWORK_PROPERTY = re.compile(
     r"SSID|Password|Passwd|IPAddr|IpAddr|IPv|WiFiIP|Subnet|Netmask|Router|DNS|MAC|EUI|PANID|PanID|ARN|CloudID|Cert"
-    r"|DebugMsg|NetMsg|FullList",
+    r"|DebugMsg|NetMsg|FullList|PIN(?:Lock)?Code",
     re.I,
 )
 

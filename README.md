@@ -87,7 +87,7 @@ uses:
 | `switch.<name>_optimum_start` / `…_optimum_stop` (config) | `sComm:OptimizeStart` / `OptimizeStop` | adaptive start / stop |
 | `switch.<name>_frost_protection` (config) | `sComm:HolidayActive` | what the app's "Frost protection" setting writes |
 | `select.<name>_display_brightness` (config) | `sComm:LEDBrightness` | High (204) / Low (64) |
-| `select.<name>_temperature_display_resolution` (config) | `sComm:TempDisplayResolution` | 0.5 °C (5) / 0.1 °C (1) |
+| `select.<name>_temperature_display_resolution` (config) | `sComm:TempDisplayResolution_x10` | 0.5 °C (5) / 0.1 °C (1) |
 | `select.<name>_heating_control` (config) | `sComm:HeatingControlAlgorithm` | hysteresis ±0.25 … ±2.0 °C (0, 1, 3, 4, 5), TPI underfloor / radiators / electric (16, 17, 18) |
 
 ## Gateway

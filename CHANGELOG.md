@@ -3,6 +3,19 @@
 All notable changes to this project are documented in this file. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [2.2.1] - 2026-10-27
+
+Checked against the shadow of a real IT800TX.
+
+### Fixed
+- "Temperature display resolution" was never created: the IT800TX reports it as `sComm:TempDisplayResolution_x10`.
+- Diagnostics no longer show the thermostat's key lock PIN (`sComm:PINLockCode`).
+
+### Note
+- With the display resolution at 0.5 °C the IT800TX reports its temperature in 0.5 °C steps, and it reports its
+  humidity rarely (the checked thermostat had not sent a new value for 15 hours). Home Assistant shows the last
+  value Salus Cloud has, so the Salus app shows the same.
+
 ## [2.2.0] - 2026-10-27
 
 ### Fixed

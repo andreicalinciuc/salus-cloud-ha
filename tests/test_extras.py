@@ -41,7 +41,7 @@ IT800_EXTRA = {
     "ep1:sComm:OptimizeStart": 0,
     "ep1:sComm:OptimizeStop": 1,
     "ep1:sComm:HolidayActive": 1,
-    "ep1:sComm:TempDisplayResolution": 5,
+    "ep1:sComm:TempDisplayResolution_x10": 5,
     "ep1:sComm:HeatingControlAlgorithm": 17,
 }
 
@@ -191,7 +191,7 @@ async def test_settings_send_set_commands(hass: HomeAssistant, setup: tuple[Mock
         {"ep1:sComm:SetOptimizeStart": 1},
         {"ep1:sComm:SetHolidayActive": 0},
         {"ep1:sComm:SetLEDBrightness": 64},
-        {"ep1:sComm:SetTempDisplayResolution": 1},
+        {"ep1:sComm:SetTempDisplayResolution_x10": 1},
         {"ep1:sComm:SetHeatingControlAlgorithm": 16},
         {"ep1:sTherS:SetMaxHeatSetpoint_x100": 2800},
     ]

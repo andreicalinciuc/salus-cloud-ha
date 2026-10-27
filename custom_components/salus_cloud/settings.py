@@ -77,7 +77,8 @@ SELECT_SETTINGS: tuple[SelectSetting, ...] = (
     ),
     SelectSetting(
         key="temperature_display_resolution",
-        pattern=re.compile(r"^ep1:sComm:TempDisplayResolution$"),
+        # IT800TX reports it as TempDisplayResolution_x10 (5 = 0.5 °C)
+        pattern=re.compile(r"^ep1:sComm:TempDisplayResolution(_x10)?$"),
         values={5: "half_degree", 1: "tenth_degree"},
     ),
     SelectSetting(
