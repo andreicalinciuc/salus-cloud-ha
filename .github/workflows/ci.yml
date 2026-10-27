@@ -1,0 +1,61 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+  schedule:
+    - cron: "17 4 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tests:
+    name: pytest (HA ${{ matrix.ha }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - ha: "2025.8.0 (minimum)"
+            python: "3.13"
+            requirements: requirements_test_min.txt
+          - ha: "2026.2.3"
+            python: "3.13"
+            requirements: requirements_test_mid.txt
+          - ha: "2026.10.4 (latest)"
+            python: "3.14"
+            requirements: requirements_test.txt
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python }}
+          cache: pip
+          cache-dependency-path: ${{ matrix.requirements }}
+      - name: Install dependencies
+        run: pip install -r ${{ matrix.requirements }}
+      - name: Run tests
+        run: pytest -v
+
+  hassfest:
+    name: hassfest
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: home-assistant/actions/hassfest@master
+
+  hacs:
+    name: HACS validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: hacs/action@main
+        with:
+          category: integration

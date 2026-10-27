@@ -1,0 +1,6 @@
+# Minimum supported Home Assistant (2025.8.0, see hacs.json), Python 3.13
+pytest-homeassistant-custom-component==0.13.269
+pycognito==2024.5.1
+paho-mqtt>=2.0.0
+# aiodns of HA 2025.8 is incompatible with pycares 5
+pycares<5

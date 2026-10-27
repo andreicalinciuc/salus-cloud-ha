@@ -1,0 +1,114 @@
+{
+  "entity": {
+    "binary_sensor": {
+      "heating": {
+        "default": "mdi:fire-off",
+        "state": {
+          "on": "mdi:fire"
+        }
+      },
+      "key_lock": {
+        "default": "mdi:lock-open-variant",
+        "state": {
+          "on": "mdi:lock"
+        }
+      },
+      "boiler": {
+        "default": "mdi:water-boiler-off",
+        "state": {
+          "on": "mdi:water-boiler"
+        }
+      }
+    },
+    "sensor": {
+      "target_temperature": {
+        "default": "mdi:thermometer-check"
+      },
+      "battery_voltage": {
+        "default": "mdi:battery"
+      },
+      "preset": {
+        "default": "mdi:calendar-clock",
+        "state": {
+          "manual": "mdi:hand-back-right",
+          "frost_protection": "mdi:snowflake-thermometer"
+        }
+      },
+      "system_mode": {
+        "default": "mdi:thermostat",
+        "state": {
+          "off": "mdi:power-off",
+          "heat": "mdi:radiator"
+        }
+      },
+      "floor_temperature": {
+        "default": "mdi:heating-coil"
+      },
+      "receiver_mode": {
+        "default": "mdi:hand-back-right",
+        "state": {
+          "auto": "mdi:thermostat-auto"
+        }
+      }
+    },
+    "climate": {
+      "thermostat": {
+        "state_attributes": {
+          "preset_mode": {
+            "default": "mdi:thermostat",
+            "state": {
+              "schedule": "mdi:calendar-clock",
+              "manual": "mdi:hand-back-right",
+              "away": "mdi:snowflake-thermometer"
+            }
+          }
+        }
+      }
+    },
+    "number": {
+      "temperature_calibration": {
+        "default": "mdi:thermometer-lines"
+      },
+      "frost_temperature": {
+        "default": "mdi:snowflake-thermometer"
+      },
+      "min_heat_setpoint": {
+        "default": "mdi:thermometer-chevron-down"
+      },
+      "max_heat_setpoint": {
+        "default": "mdi:thermometer-chevron-up"
+      }
+    },
+    "switch": {
+      "key_lock": {
+        "default": "mdi:lock-open-variant",
+        "state": {
+          "on": "mdi:lock"
+        }
+      },
+      "display_always_on": {
+        "default": "mdi:monitor"
+      },
+      "optimum_start": {
+        "default": "mdi:clock-start"
+      },
+      "optimum_stop": {
+        "default": "mdi:clock-end"
+      },
+      "frost_protection": {
+        "default": "mdi:snowflake-thermometer"
+      }
+    },
+    "select": {
+      "display_brightness": {
+        "default": "mdi:brightness-6"
+      },
+      "temperature_display_resolution": {
+        "default": "mdi:decimal"
+      },
+      "heating_control": {
+        "default": "mdi:tune-variant"
+      }
+    }
+  }
+}

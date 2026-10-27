@@ -1,0 +1,147 @@
+{
+  "entity": {
+    "binary_sensor": {
+      "heating": {
+        "name": "Încălzire",
+        "state": {
+          "on": "Încălzește",
+          "off": "Inactiv"
+        }
+      },
+      "battery_low": {
+        "name": "Baterie descărcată"
+      },
+      "key_lock": {
+        "name": "Blocare taste",
+        "state": {
+          "on": "Blocat",
+          "off": "Deblocat"
+        }
+      },
+      "problem": {
+        "name": "Problemă"
+      },
+      "boiler": {
+        "name": "Centrală",
+        "state": {
+          "on": "Încălzește",
+          "off": "Inactivă"
+        }
+      }
+    },
+    "sensor": {
+      "current_temperature": {
+        "name": "Temperatură"
+      },
+      "target_temperature": {
+        "name": "Temperatură setată"
+      },
+      "current_humidity": {
+        "name": "Umiditate"
+      },
+      "battery_voltage": {
+        "name": "Tensiune baterie"
+      },
+      "preset": {
+        "name": "Mod",
+        "state": {
+          "schedule": "Program",
+          "manual": "Manual",
+          "frost_protection": "Protecție îngheț"
+        }
+      },
+      "system_mode": {
+        "name": "Mod sistem",
+        "state": {
+          "off": "Oprit",
+          "auto": "Auto",
+          "heat": "Încălzire"
+        }
+      },
+      "floor_temperature": {
+        "name": "Temperatură pardoseală"
+      },
+      "receiver_mode": {
+        "name": "Mod",
+        "state": {
+          "auto": "Automat",
+          "manual_on": "Manual pornit",
+          "manual_off": "Manual oprit"
+        }
+      }
+    },
+    "climate": {
+      "thermostat": {
+        "state_attributes": {
+          "preset_mode": {
+            "state": {
+              "schedule": "Program",
+              "manual": "Manual",
+              "away": "Protecție îngheț"
+            }
+          }
+        }
+      }
+    },
+    "number": {
+      "temperature_calibration": {
+        "name": "Calibrare temperatură"
+      },
+      "frost_temperature": {
+        "name": "Temperatură protecție îngheț"
+      },
+      "min_heat_setpoint": {
+        "name": "Temperatură minimă încălzire"
+      },
+      "max_heat_setpoint": {
+        "name": "Temperatură maximă încălzire"
+      }
+    },
+    "switch": {
+      "key_lock": {
+        "name": "Blocare taste"
+      },
+      "display_always_on": {
+        "name": "Afișaj mereu pornit"
+      },
+      "optimum_start": {
+        "name": "Pornire adaptivă"
+      },
+      "optimum_stop": {
+        "name": "Oprire adaptivă"
+      },
+      "frost_protection": {
+        "name": "Protecție la îngheț"
+      }
+    },
+    "select": {
+      "display_brightness": {
+        "name": "Luminozitate afișaj",
+        "state": {
+          "high": "Mare",
+          "low": "Mică"
+        }
+      },
+      "temperature_display_resolution": {
+        "name": "Rezoluție afișare temperatură",
+        "state": {
+          "half_degree": "0,5 °C",
+          "tenth_degree": "0,1 °C"
+        }
+      },
+      "heating_control": {
+        "name": "Comandă încălzire",
+        "state": {
+          "hysteresis_0_25": "Histerezis ±0,25 °C",
+          "hysteresis_0_5": "Histerezis ±0,5 °C",
+          "hysteresis_1_0": "Histerezis ±1,0 °C",
+          "hysteresis_1_5": "Histerezis ±1,5 °C",
+          "hysteresis_2_0": "Histerezis ±2,0 °C",
+          "tpi_underfloor": "TPI încălzire în pardoseală",
+          "tpi_radiator": "TPI radiatoare",
+          "tpi_electric": "TPI încălzire electrică"
+        }
+      }
+    }
+  }
+}

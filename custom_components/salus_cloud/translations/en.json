@@ -1,0 +1,189 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Salus Cloud",
+        "description": "Enter your Salus Cloud credentials",
+        "data": {
+          "email": "Email",
+          "password": "Password"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Salus Cloud",
+        "description": "Salus Cloud rejected the password of {email}. Enter the current password.",
+        "data": {
+          "password": "Password"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Invalid email or password",
+      "cannot_connect": "Cannot connect to Salus Cloud",
+      "no_devices": "No devices found on your account",
+      "unknown": "Unexpected error occurred"
+    },
+    "abort": {
+      "already_configured": "Account is already configured",
+      "reauth_successful": "Password updated"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Salus Cloud",
+        "data": {
+          "sync_thermostat_modes": "Synchronize thermostat modes"
+        },
+        "data_description": {
+          "sync_thermostat_modes": "Changing the mode (off, schedule, manual, stand-by) of one thermostat in Home Assistant changes it for all thermostats of the same gateway. Target temperatures are not synchronized."
+        }
+      }
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "heating": {
+        "name": "Heating",
+        "state": {
+          "on": "Heating",
+          "off": "Idle"
+        }
+      },
+      "battery_low": {
+        "name": "Battery low"
+      },
+      "key_lock": {
+        "name": "Key lock",
+        "state": {
+          "on": "Locked",
+          "off": "Unlocked"
+        }
+      },
+      "problem": {
+        "name": "Problem"
+      },
+      "boiler": {
+        "name": "Boiler",
+        "state": {
+          "on": "Heating",
+          "off": "Idle"
+        }
+      }
+    },
+    "sensor": {
+      "current_temperature": {
+        "name": "Temperature"
+      },
+      "target_temperature": {
+        "name": "Target temperature"
+      },
+      "current_humidity": {
+        "name": "Humidity"
+      },
+      "battery_voltage": {
+        "name": "Battery voltage"
+      },
+      "preset": {
+        "name": "Preset",
+        "state": {
+          "schedule": "Schedule",
+          "manual": "Manual",
+          "frost_protection": "Frost protection"
+        }
+      },
+      "system_mode": {
+        "name": "System mode",
+        "state": {
+          "off": "Off",
+          "auto": "Auto",
+          "heat": "Heat"
+        }
+      },
+      "floor_temperature": {
+        "name": "Floor temperature"
+      },
+      "receiver_mode": {
+        "name": "Mode",
+        "state": {
+          "auto": "Auto",
+          "manual_on": "Manual on",
+          "manual_off": "Manual off"
+        }
+      }
+    },
+    "climate": {
+      "thermostat": {
+        "state_attributes": {
+          "preset_mode": {
+            "state": {
+              "schedule": "Schedule",
+              "manual": "Manual",
+              "away": "Frost protection"
+            }
+          }
+        }
+      }
+    },
+    "number": {
+      "temperature_calibration": {
+        "name": "Temperature calibration"
+      },
+      "frost_temperature": {
+        "name": "Frost protection temperature"
+      },
+      "min_heat_setpoint": {
+        "name": "Minimum heating temperature"
+      },
+      "max_heat_setpoint": {
+        "name": "Maximum heating temperature"
+      }
+    },
+    "switch": {
+      "key_lock": {
+        "name": "Key lock"
+      },
+      "display_always_on": {
+        "name": "Display always on"
+      },
+      "optimum_start": {
+        "name": "Optimum start"
+      },
+      "optimum_stop": {
+        "name": "Optimum stop"
+      },
+      "frost_protection": {
+        "name": "Frost protection"
+      }
+    },
+    "select": {
+      "display_brightness": {
+        "name": "Display brightness",
+        "state": {
+          "high": "High",
+          "low": "Low"
+        }
+      },
+      "temperature_display_resolution": {
+        "name": "Temperature display resolution",
+        "state": {
+          "half_degree": "0.5 °C",
+          "tenth_degree": "0.1 °C"
+        }
+      },
+      "heating_control": {
+        "name": "Heating control",
+        "state": {
+          "hysteresis_0_25": "Hysteresis ±0.25 °C",
+          "hysteresis_0_5": "Hysteresis ±0.5 °C",
+          "hysteresis_1_0": "Hysteresis ±1.0 °C",
+          "hysteresis_1_5": "Hysteresis ±1.5 °C",
+          "hysteresis_2_0": "Hysteresis ±2.0 °C",
+          "tpi_underfloor": "TPI underfloor heating",
+          "tpi_radiator": "TPI radiators",
+          "tpi_electric": "TPI electric heating"
+        }
+      }
+    }
+  }
+}

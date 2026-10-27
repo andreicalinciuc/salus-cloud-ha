@@ -1,0 +1,18 @@
+{
+  "domain": "salus_cloud",
+  "name": "Salus Cloud",
+  "codeowners": [
+    "@andreicalinciuc"
+  ],
+  "config_flow": true,
+  "dependencies": [],
+  "documentation": "https://github.com/andreicalinciuc/salus-cloud-ha",
+  "integration_type": "hub",
+  "iot_class": "cloud_polling",
+  "issue_tracker": "https://github.com/andreicalinciuc/salus-cloud-ha/issues",
+  "requirements": [
+    "pycognito==2024.5.1",
+    "paho-mqtt>=2.0.0"
+  ],
+  "version": "2.0.0"
+}

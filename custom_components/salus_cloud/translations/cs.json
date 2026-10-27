@@ -1,0 +1,189 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Salus Cloud",
+        "description": "Zadejte přihlašovací údaje k Salus Cloud",
+        "data": {
+          "email": "E-mail",
+          "password": "Heslo"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Salus Cloud",
+        "description": "Salus Cloud odmítl heslo účtu {email}. Zadejte aktuální heslo.",
+        "data": {
+          "password": "Heslo"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Neplatný e-mail nebo heslo",
+      "cannot_connect": "Nelze se připojit k Salus Cloud",
+      "no_devices": "Na účtu nebyla nalezena žádná zařízení",
+      "unknown": "Nastala neočekávaná chyba"
+    },
+    "abort": {
+      "already_configured": "Účet je již nastaven",
+      "reauth_successful": "Heslo bylo aktualizováno"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Salus Cloud",
+        "data": {
+          "sync_thermostat_modes": "Synchronizovat režim termostatů"
+        },
+        "data_description": {
+          "sync_thermostat_modes": "Změna režimu (vypnuto, časový plán, manuál, stand-by) jednoho termostatu v Home Assistantu se provede u všech termostatů na stejné bráně. Nastavené teploty se nesynchronizují."
+        }
+      }
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "heating": {
+        "name": "Topení",
+        "state": {
+          "on": "Topí",
+          "off": "Netopí"
+        }
+      },
+      "battery_low": {
+        "name": "Slabá baterie"
+      },
+      "key_lock": {
+        "name": "Zámek tlačítek",
+        "state": {
+          "on": "Zamčeno",
+          "off": "Odemčeno"
+        }
+      },
+      "problem": {
+        "name": "Porucha"
+      },
+      "boiler": {
+        "name": "Kotel",
+        "state": {
+          "on": "Topí",
+          "off": "Nečinný"
+        }
+      }
+    },
+    "sensor": {
+      "current_temperature": {
+        "name": "Teplota"
+      },
+      "target_temperature": {
+        "name": "Cílová teplota"
+      },
+      "current_humidity": {
+        "name": "Vlhkost"
+      },
+      "battery_voltage": {
+        "name": "Napětí baterie"
+      },
+      "preset": {
+        "name": "Režim",
+        "state": {
+          "schedule": "Plán",
+          "manual": "Ruční",
+          "frost_protection": "Ochrana proti mrazu"
+        }
+      },
+      "system_mode": {
+        "name": "Systémový režim",
+        "state": {
+          "off": "Vypnuto",
+          "auto": "Auto",
+          "heat": "Topení"
+        }
+      },
+      "floor_temperature": {
+        "name": "Teplota podlahy"
+      },
+      "receiver_mode": {
+        "name": "Režim",
+        "state": {
+          "auto": "Automaticky",
+          "manual_on": "Ručně zapnuto",
+          "manual_off": "Ručně vypnuto"
+        }
+      }
+    },
+    "climate": {
+      "thermostat": {
+        "state_attributes": {
+          "preset_mode": {
+            "state": {
+              "schedule": "Plán",
+              "manual": "Ruční",
+              "away": "Ochrana proti mrazu"
+            }
+          }
+        }
+      }
+    },
+    "number": {
+      "temperature_calibration": {
+        "name": "Kalibrace teploty"
+      },
+      "frost_temperature": {
+        "name": "Teplota ochrany proti mrazu"
+      },
+      "min_heat_setpoint": {
+        "name": "Minimální teplota vytápění"
+      },
+      "max_heat_setpoint": {
+        "name": "Maximální teplota vytápění"
+      }
+    },
+    "switch": {
+      "key_lock": {
+        "name": "Zámek tlačítek"
+      },
+      "display_always_on": {
+        "name": "Displej stále zapnutý"
+      },
+      "optimum_start": {
+        "name": "Optimální start"
+      },
+      "optimum_stop": {
+        "name": "Optimální stop"
+      },
+      "frost_protection": {
+        "name": "Ochrana proti mrazu"
+      }
+    },
+    "select": {
+      "display_brightness": {
+        "name": "Jas displeje",
+        "state": {
+          "high": "Vysoký",
+          "low": "Nízký"
+        }
+      },
+      "temperature_display_resolution": {
+        "name": "Rozlišení zobrazení teploty",
+        "state": {
+          "half_degree": "0,5 °C",
+          "tenth_degree": "0,1 °C"
+        }
+      },
+      "heating_control": {
+        "name": "Řízení vytápění",
+        "state": {
+          "hysteresis_0_25": "Hystereze ±0,25 °C",
+          "hysteresis_0_5": "Hystereze ±0,5 °C",
+          "hysteresis_1_0": "Hystereze ±1,0 °C",
+          "hysteresis_1_5": "Hystereze ±1,5 °C",
+          "hysteresis_2_0": "Hystereze ±2,0 °C",
+          "tpi_underfloor": "TPI podlahové topení",
+          "tpi_radiator": "TPI radiátory",
+          "tpi_electric": "TPI elektrické topení"
+        }
+      }
+    }
+  }
+}
