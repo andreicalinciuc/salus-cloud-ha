@@ -69,6 +69,9 @@
           "on": "Topí",
           "off": "Nečinný"
         }
+      },
+      "cloud_connection": {
+        "name": "Připojení ke cloudu"
       }
     },
     "sensor": {
@@ -110,6 +113,9 @@
           "manual_on": "Ručně zapnuto",
           "manual_off": "Ručně vypnuto"
         }
+      },
+      "wifi_signal": {
+        "name": "Signál Wi-Fi"
       }
     },
     "climate": {

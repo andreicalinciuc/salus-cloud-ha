@@ -90,17 +90,18 @@ uses:
 | `select.<name>_temperature_display_resolution` (config) | `sComm:TempDisplayResolution` | 0.5 °C (5) / 0.1 °C (1) |
 | `select.<name>_heating_control` (config) | `sComm:HeatingControlAlgorithm` | hysteresis ±0.25 … ±2.0 °C (0, 1, 3, 4, 5), TPI underfloor / radiators / electric (16, 17, 18) |
 
-## Wi-Fi receiver (gateway)
-
-A gateway that reports them (such as the IT800 Wi-Fi receiver switching the boiler) gets:
+## Gateway
 
 | Entity | Source property | Values |
 |---|---|---|
-| `binary_sensor.<gateway>_boiler` | `sComm:RelayStatus` | Heating / Idle |
-| `sensor.<gateway>_mode` | `sComm:PanelSwitchStatus` | Auto / Manual on / Manual off (the receiver's own switch) |
+| `sensor.<gateway>_wi_fi_signal` (diagnostic) | `sGateway:WiFiRSSI` | dBm |
+| `binary_sensor.<gateway>_cloud_connection` (diagnostic) | `sAWSIoT:CloudStatus` | Connected / Disconnected |
+| `binary_sensor.<gateway>_boiler` | `sComm:RelayStatus`, only on gateways with a boiler relay | Heating / Idle |
+| `sensor.<gateway>_mode` | `sComm:PanelSwitchStatus`, only on gateways with a boiler relay | Auto / Manual on / Manual off |
 
-Its firmware is shown on the device page. Gateway states are polled (every 5 minutes while thermostat changes are
-pushed), so the boiler state can lag behind the thermostat's own "Heating" sensor.
+The device page shows the gateway's software and hardware version. Gateway states are polled (every 5 minutes
+while thermostat changes are pushed). A SAWZ600GW Wi-Fi gateway reports no boiler relay, so it only gets the first
+two entities.
 
 The thermostat's temperature range follows the device's `MinHeatSetpoint_x100` / `MaxHeatSetpoint_x100`, and the
 device page shows its firmware and hardware version. Presets are shown as Schedule / Manual / Frost protection.

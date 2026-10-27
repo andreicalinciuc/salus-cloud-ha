@@ -18,6 +18,12 @@
         "state": {
           "on": "mdi:water-boiler"
         }
+      },
+      "cloud_connection": {
+        "default": "mdi:cloud-off-outline",
+        "state": {
+          "on": "mdi:cloud-check-outline"
+        }
       }
     },
     "sensor": {
@@ -49,6 +55,9 @@
         "state": {
           "auto": "mdi:thermostat-auto"
         }
+      },
+      "wifi_signal": {
+        "default": "mdi:wifi"
       }
     },
     "climate": {

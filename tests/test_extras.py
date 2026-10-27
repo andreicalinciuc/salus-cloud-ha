@@ -44,15 +44,21 @@ IT800_EXTRA = {
     "ep1:sComm:HeatingControlAlgorithm": 17,
 }
 
-# Wi-Fi receiver switching the boiler (reported by the gateway in two shadow indexes)
+# Wi-Fi gateway as a SAWZ600GW reports it (index 1), plus a receiver relay some gateways report (index 2)
 RECEIVER_SHADOW = {
     "state": {
         "reported": {
             "000000000001": {
                 "properties": {
-                    "ep0:sZDO:FirmwareVersion": "000170240719",
-                    "ep0:sCoord:Channel_d": 20,
-                    "ep0:sWiFi:SSID": "Home",
+                    "ep0:sGateway:GatewaySoftwareVersion": "000170240719",
+                    "ep0:sGateway:GatewayHardwareVersion": "2",
+                    "ep0:sGateway:WiFiRSSI": -70,
+                    "ep0:sAWSIoT:CloudStatus": 1,
+                    "ep0:sGateway:NetworkSSID": "Home",
+                    "ep0:sGateway:NetworkPassword": "secret",
+                    "ep0:sGateway:NetworkWiFiIP": "192.168.1.20",
+                    "ep0:sAWSIoT:CertARN": "arn:aws:iot:eu-central-1:000000000000:cert/abc",
+                    "ep0:sGateway:deviceFullList": ["001E5E0000000B02"],
                 }
             },
             "000000000002": {"properties": {"ep1:sComm:RelayStatus": 1, "ep1:sComm:PanelSwitchStatus": 0}},
@@ -206,7 +212,11 @@ async def test_receiver_entities(hass: HomeAssistant, setup: tuple[MockConfigEnt
     assert hass.states.get(mode).state == "auto"
     devices = dr.async_entries_for_config_entry(dr.async_get(hass), entry.entry_id)
     gateway = next(device for device in devices if (DOMAIN, fixtures.GATEWAY_ID) in device.identifiers)
-    assert gateway.sw_version == "000170240719"
+    assert (gateway.sw_version, gateway.hw_version) == ("000170240719", "2")
+    signal = registry.async_get_entity_id("sensor", DOMAIN, f"{DOMAIN}_{fixtures.GATEWAY_ID}_wifi_signal")
+    cloud = registry.async_get_entity_id("binary_sensor", DOMAIN, f"{DOMAIN}_{fixtures.GATEWAY_ID}_cloud_connection")
+    assert hass.states.get(signal).state == "-70"
+    assert hass.states.get(cloud).state == "on"
     assert registry.async_get(boiler).device_id == gateway.id
 
 
@@ -223,7 +233,15 @@ async def test_diagnostics_hide_network_details(
     diagnostics = await async_get_config_entry_diagnostics(hass, entry)
     properties = diagnostics["gateways"][0]["shadow_properties"]
     assert properties["ep1:sComm:RelayStatus"] == 1
-    assert properties["ep0:sWiFi:SSID"] == "**REDACTED**"
+    for key in (
+        "ep0:sGateway:NetworkSSID",
+        "ep0:sGateway:NetworkPassword",
+        "ep0:sGateway:NetworkWiFiIP",
+        "ep0:sAWSIoT:CertARN",
+        "ep0:sGateway:deviceFullList",
+    ):
+        assert properties[key] == "**REDACTED**", key
+    assert properties["ep0:sGateway:WiFiRSSI"] == -70
 
 
 def test_receiver_mode_and_signed_byte() -> None:

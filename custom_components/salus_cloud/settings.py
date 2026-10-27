@@ -104,4 +104,8 @@ def receiver_mode(raw: Any) -> str | None:
     return "manual_off" if raw & 0b01 else "manual_on"
 
 
-GATEWAY_FIRMWARE_PATTERN = re.compile(r"^ep\d+:sZDO:FirmwareVersion$")
+GATEWAY_FIRMWARE_PATTERN = re.compile(r"^ep\d+:(?:sZDO:FirmwareVersion|sGateway:GatewaySoftwareVersion)$")
+GATEWAY_HARDWARE_PATTERN = re.compile(r"^ep\d+:sGateway:GatewayHardwareVersion$")
+# Wi-Fi gateway (e.g. SAWZ600GW): signal strength in dBm and the connection to Salus Cloud (1 connected)
+GATEWAY_RSSI_PATTERN = re.compile(r"^ep\d+:sGateway:WiFiRSSI$")
+GATEWAY_CLOUD_PATTERN = re.compile(r"^ep\d+:sAWSIoT:CloudStatus$")

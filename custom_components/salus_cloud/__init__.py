@@ -12,7 +12,7 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from .api import SalusCloudApi, SalusCloudAuthenticationError, SalusCloudConnectionError
 from .const import DOMAIN
 from .coordinator import SalusCloudCoordinator
-from .settings import GATEWAY_FIRMWARE_PATTERN, find_key
+from .settings import GATEWAY_FIRMWARE_PATTERN, GATEWAY_HARDWARE_PATTERN, find_key
 
 PLATFORMS: list[Platform] = [
     Platform.CLIMATE,
@@ -45,13 +45,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: SalusConfigEntry) -> boo
     for gateway in coordinator.gateways:
         properties = coordinator.gateway_properties(gateway.id)
         firmware = properties.get(find_key(properties, GATEWAY_FIRMWARE_PATTERN) or "")
+        hardware = properties.get(find_key(properties, GATEWAY_HARDWARE_PATTERN) or "")
         device = device_registry.async_get_or_create(
             config_entry_id=entry.entry_id,
             identifiers={(DOMAIN, gateway.id)},
             manufacturer="Salus",
             model=gateway.model or "Gateway",
             name=gateway.name,
-            sw_version=str(firmware) if isinstance(firmware, (str, int)) and not isinstance(firmware, bool) else None,
+            sw_version=_version(firmware),
+            hw_version=_version(hardware),
         )
         coordinator.gateway_device_ids[gateway.id] = device.id
 
@@ -59,6 +61,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: SalusConfigEntry) -> boo
     entry.runtime_data = coordinator
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     return True
+
+
+def _version(value: object) -> str | None:
+    return str(value) if isinstance(value, (str, int)) and not isinstance(value, bool) and value != "" else None
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: SalusConfigEntry) -> bool:

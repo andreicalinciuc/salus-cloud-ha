@@ -29,8 +29,13 @@ TO_REDACT = {
 }
 
 
-# Network details and hardware addresses a gateway may report (Wi-Fi name, IP addresses, MAC / EUI)
-NETWORK_PROPERTY = re.compile(r"SSID|Password|Passwd|IPAddr|IpAddr|IPv|Subnet|Netmask|Router|DNS|MAC|EUI|PANID|PanID", re.I)
+# Network details, hardware addresses, cloud identities and debug logs a gateway may report (Wi-Fi name and
+# password, IP addresses, MAC / EUI, AWS certificate, device list)
+NETWORK_PROPERTY = re.compile(
+    r"SSID|Password|Passwd|IPAddr|IpAddr|IPv|WiFiIP|Subnet|Netmask|Router|DNS|MAC|EUI|PANID|PanID|ARN|CloudID|Cert"
+    r"|DebugMsg|NetMsg|FullList",
+    re.I,
+)
 
 
 def _redact_properties(properties: dict[str, Any]) -> dict[str, Any]:

@@ -27,6 +27,9 @@
           "on": "Încălzește",
           "off": "Inactivă"
         }
+      },
+      "cloud_connection": {
+        "name": "Conexiune cloud"
       }
     },
     "sensor": {
@@ -68,6 +71,9 @@
           "manual_on": "Manual pornit",
           "manual_off": "Manual oprit"
         }
+      },
+      "wifi_signal": {
+        "name": "Semnal Wi-Fi"
       }
     },
     "climate": {

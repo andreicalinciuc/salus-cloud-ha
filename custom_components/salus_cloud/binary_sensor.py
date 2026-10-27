@@ -16,7 +16,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from .coordinator import SalusCloudCoordinator, SalusDevice
 from .devices import is_climate_device
 from .entity import SalusEntity, SalusGatewayEntity
-from .settings import GATEWAY_RELAY_PATTERN, SWITCH_SETTINGS, find_key
+from .settings import GATEWAY_CLOUD_PATTERN, GATEWAY_RELAY_PATTERN, SWITCH_SETTINGS, find_key
 from .shadow_sensors import (
     BATTERY_LOW_PATTERN,
     ERROR_PATTERN,
@@ -62,6 +62,8 @@ async def async_setup_entry(
         properties = coordinator.gateway_properties(gateway.id)
         if (key := find_key(properties, GATEWAY_RELAY_PATTERN)) is not None:
             entities.append(SalusBoilerBinarySensor(coordinator, gateway.id, "boiler", key))
+        if (key := find_key(properties, GATEWAY_CLOUD_PATTERN)) is not None:
+            entities.append(SalusCloudConnectionBinarySensor(coordinator, gateway.id, "cloud_connection", key))
     async_add_entities(entities)
 
 
@@ -203,3 +205,18 @@ class SalusBoilerBinarySensor(SalusGatewayEntity, BinarySensorEntity):
         if not isinstance(value, int) or isinstance(value, bool):
             return None
         return value != 0
+
+
+class SalusCloudConnectionBinarySensor(SalusGatewayEntity, BinarySensorEntity):
+    """Whether the gateway reports a connection to Salus Cloud."""
+
+    _attr_device_class = BinarySensorDeviceClass.CONNECTIVITY
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    @property
+    def is_on(self) -> bool | None:
+        """Return true while the gateway is connected to Salus Cloud."""
+        value = self.raw_value
+        if not isinstance(value, int) or isinstance(value, bool):
+            return None
+        return value == 1

@@ -10,14 +10,20 @@ from homeassistant.components.sensor import (
     SensorStateClass,
 )
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import PERCENTAGE, UnitOfTemperature
+from homeassistant.const import PERCENTAGE, SIGNAL_STRENGTH_DECIBELS_MILLIWATT, EntityCategory, UnitOfTemperature
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .coordinator import SalusCloudCoordinator, SalusDevice
 from .devices import is_climate_device
 from .entity import SalusEntity, SalusGatewayEntity
-from .settings import GATEWAY_PANEL_SWITCH_PATTERN, RECEIVER_MODE_OPTIONS, find_key, receiver_mode
+from .settings import (
+    GATEWAY_PANEL_SWITCH_PATTERN,
+    GATEWAY_RSSI_PATTERN,
+    RECEIVER_MODE_OPTIONS,
+    find_key,
+    receiver_mode,
+)
 from .shadow_sensors import SHADOW_SENSORS, ShadowSensorDescription, find_property, humidity_property
 
 
@@ -50,6 +56,8 @@ async def async_setup_entry(
         properties = coordinator.gateway_properties(gateway.id)
         if (key := find_key(properties, GATEWAY_PANEL_SWITCH_PATTERN)) is not None:
             entities.append(SalusReceiverModeSensor(coordinator, gateway.id, "receiver_mode", key))
+        if (key := find_key(properties, GATEWAY_RSSI_PATTERN)) is not None:
+            entities.append(SalusWifiSignalSensor(coordinator, gateway.id, "wifi_signal", key))
     async_add_entities(entities)
 
 
@@ -193,3 +201,18 @@ class SalusReceiverModeSensor(SalusGatewayEntity, SensorEntity):
     def native_value(self) -> str | None:
         """Return auto / manual_on / manual_off."""
         return receiver_mode(self.raw_value)
+
+
+class SalusWifiSignalSensor(SalusGatewayEntity, SensorEntity):
+    """Wi-Fi signal strength of a gateway."""
+
+    _attr_device_class = SensorDeviceClass.SIGNAL_STRENGTH
+    _attr_native_unit_of_measurement = SIGNAL_STRENGTH_DECIBELS_MILLIWATT
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    @property
+    def native_value(self) -> int | None:
+        """Return the signal strength in dBm."""
+        value = self.raw_value
+        return value if isinstance(value, int) and not isinstance(value, bool) else None

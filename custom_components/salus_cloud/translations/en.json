@@ -69,6 +69,9 @@
           "on": "Heating",
           "off": "Idle"
         }
+      },
+      "cloud_connection": {
+        "name": "Cloud connection"
       }
     },
     "sensor": {
@@ -110,6 +113,9 @@
           "manual_on": "Manual on",
           "manual_off": "Manual off"
         }
+      },
+      "wifi_signal": {
+        "name": "Wi-Fi signal"
       }
     },
     "climate": {

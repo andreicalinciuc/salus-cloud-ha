@@ -3,6 +3,22 @@
 All notable changes to this project are documented in this file. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [2.0.1] - 2026-10-27
+
+Checked against a real IT800 system (SAWZ600GW Wi-Fi gateway with an IT800TX thermostat).
+
+### Added
+- Wi-Fi gateway: "Wi-Fi signal" (dBm) and "Cloud connection" diagnostic entities; software and hardware version on
+  the device page (SAWZ600GW reports them as `sGateway:GatewaySoftwareVersion` / `GatewayHardwareVersion`).
+
+### Fixed
+- Diagnostics: the gateway also reports its Wi-Fi IP address, AWS certificate, cloud id, debug logs and device
+  list; these are now redacted too (the Wi-Fi name and password already were).
+
+### Note
+- A SAWZ600GW does not report a boiler relay, so "Boiler" and "Mode" are not created for it; the Salus app's
+  "Main / Auto off" on that tile is its default text when no relay state is reported.
+
 ## [2.0.0] - 2026-10-27
 
 ### Changed (breaking)
