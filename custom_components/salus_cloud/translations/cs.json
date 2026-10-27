@@ -2,8 +2,24 @@
   "config": {
     "step": {
       "user": {
-        "title": "Salus Cloud",
-        "description": "Zadejte přihlašovací údaje k Salus Cloud",
+        "title": "Salus",
+        "description": "Kterou aplikaci používáte pro zařízení Salus?",
+        "menu_options": {
+          "cloud": "Salus Smart Home (iT600, iT800, Quantum a další)",
+          "it500": "Salus iT500"
+        }
+      },
+      "cloud": {
+        "title": "Salus Smart Home",
+        "description": "Zadejte e-mail a heslo z aplikace Salus Smart Home",
+        "data": {
+          "email": "E-mail",
+          "password": "Heslo"
+        }
+      },
+      "it500": {
+        "title": "Salus iT500",
+        "description": "Zadejte e-mail a heslo z aplikace Salus iT500",
         "data": {
           "email": "E-mail",
           "password": "Heslo"
@@ -11,7 +27,7 @@
       },
       "reauth_confirm": {
         "title": "Salus Cloud",
-        "description": "Salus Cloud odmítl heslo účtu {email}. Zadejte aktuální heslo.",
+        "description": "Salus odmítl heslo účtu {email}. Zadejte aktuální heslo.",
         "data": {
           "password": "Heslo"
         }
@@ -19,7 +35,7 @@
     },
     "error": {
       "invalid_auth": "Neplatný e-mail nebo heslo",
-      "cannot_connect": "Nelze se připojit k Salus Cloud",
+      "cannot_connect": "Nelze se připojit k Salus",
       "no_devices": "Na účtu nebyla nalezena žádná zařízení",
       "unknown": "Nastala neočekávaná chyba"
     },
@@ -74,6 +90,26 @@
       },
       "cloud_connection": {
         "name": "Připojení ke cloudu"
+      },
+      "frost_protection": {
+        "name": "Ochrana proti mrazu"
+      },
+      "zone_2_heating": {
+        "name": "Topení zóna 2",
+        "state": {
+          "on": "Topí",
+          "off": "Netopí"
+        }
+      },
+      "zone_2_frost_protection": {
+        "name": "Ochrana proti mrazu zóna 2"
+      },
+      "hot_water": {
+        "name": "Teplá voda",
+        "state": {
+          "on": "Ohřívá",
+          "off": "Neohřívá"
+        }
       }
     },
     "sensor": {
@@ -119,6 +155,15 @@
       },
       "wifi_signal": {
         "name": "Signál Wi-Fi"
+      },
+      "zone_2_current_temperature": {
+        "name": "Teplota zóna 2"
+      },
+      "zone_2_target_temperature": {
+        "name": "Cílová teplota zóna 2"
+      },
+      "signal_strength": {
+        "name": "Síla signálu"
       }
     },
     "climate": {
@@ -128,7 +173,21 @@
             "state": {
               "schedule": "Plán",
               "manual": "Ruční",
-              "away": "Ochrana proti mrazu"
+              "away": "Ochrana proti mrazu",
+              "temporary_hold": "Dočasné podržení"
+            }
+          }
+        }
+      },
+      "zone_2": {
+        "name": "Zóna 2",
+        "state_attributes": {
+          "preset_mode": {
+            "state": {
+              "schedule": "Plán",
+              "manual": "Ruční",
+              "away": "Ochrana proti mrazu",
+              "temporary_hold": "Dočasné podržení"
             }
           }
         }
@@ -194,6 +253,15 @@
           "tpi_underfloor": "TPI podlahové topení",
           "tpi_radiator": "TPI radiátory",
           "tpi_electric": "TPI elektrické topení"
+        }
+      },
+      "hot_water_mode": {
+        "name": "Režim teplé vody",
+        "state": {
+          "auto": "Automaticky",
+          "once": "Jednou",
+          "on": "Zapnuto",
+          "off": "Vypnuto"
         }
       }
     },

@@ -18,6 +18,8 @@ from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from .const import HOLD_TYPE_MANUAL, HOLD_TYPE_SCHEDULE, HOLD_TYPE_STANDBY
 from .coordinator import SalusConfigEntry
 from .entity import SalusEntity
+from .it500 import climate as it500_climate
+from .it500 import is_it500_entry
 from .shadow import find_property, scaled_value
 from .thermostat import (
     MAX_HEAT_SETPOINT_PATTERN,
@@ -55,6 +57,9 @@ async def async_setup_entry(
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     """Set up Salus Cloud thermostats."""
+    if is_it500_entry(entry):
+        await it500_climate.async_setup_entry(hass, entry, async_add_entities)
+        return
     coordinator = entry.runtime_data
     async_add_entities(
         [SalusCloudClimate(coordinator, device) for device in coordinator.data.values() if device.is_thermostat]

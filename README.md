@@ -5,7 +5,8 @@
 
 Home Assistant integration for Salus devices through the Salus Cloud (AWS Cognito login, device shadows over
 AWS IoT MQTT). Supports iT600, Quantum, fan coil and iT800 (IT800TX) thermostats, TRVs, relays and smart plugs,
-roller shutters, sensors and OneTouch rules; see [Supported devices](#supported-devices).
+roller shutters, sensors and OneTouch rules; see [Supported devices](#supported-devices). iT500 thermostats, which
+use an account and cloud of their own, are supported as well; see [Salus iT500](#salus-it500).
 
 ## Highlights
 
@@ -48,7 +49,8 @@ The iT800 support was written by Vlad Ohai.
 2. Repository: `https://github.com/andreicalinciuc/salus-cloud-ha`, type: **Integration** → **Add**.
 3. Search **Salus Cloud** → **Download** → choose the latest release.
 4. Restart Home Assistant.
-5. **Settings → Devices & services → Add integration → Salus Cloud**, then log in with your Salus account.
+5. **Settings → Devices & services → Add integration → Salus Cloud**, choose the app you use (**Salus Smart Home**
+   or **Salus iT500**) and log in with the email and password of that app.
 
 ### Manual
 
@@ -125,11 +127,48 @@ reports something unexpected, use **Download diagnostics** on the integration an
 - **Refresh button:** asks the thermostat to report all its values again (`sZDO:SetRefresh_d`, about 40 seconds on
   an IT800TX), for example after changing something in the Salus app.
 
+## Salus iT500
+
+The iT500 does not use Salus Cloud: it has its own account (the one of the **Salus iT500** app) and its own cloud
+(Arrayent, `sal-emea-p01-api.arrayent.com`). Choose **Salus iT500** when adding the integration. Since
+salus-it500.com was taken offline (October 2026), integrations that read that website no longer work; this one uses
+the API of the app instead.
+
+Each thermostat of the account is a device named as in the app:
+
+| Entity | Attribute | Values |
+|---|---|---|
+| `climate.<name>` | `A84` / `A85` temperature and target (0.01 °C), `A89` off, `A92` manual, `A88` temporary hold | heat / off, presets Schedule / Temporary hold / Manual |
+| `sensor.<name>_temperature`, `…_target_temperature` | `A84`, `A85` | °C |
+| `binary_sensor.<name>_heating` | `A87` boiler relay | Heating / Idle |
+| `binary_sensor.<name>_frost_protection` | `A90` | |
+| `binary_sensor.<name>_battery_low` (diagnostic) | `S03` | |
+| `binary_sensor.<name>_cloud_connection` (diagnostic) | `online` | Connected / Disconnected |
+| `sensor.<name>_signal_strength` (diagnostic, disabled) | `rfrssi` | dBm |
+| `button.<name>_refresh` | `F` (refresh mode) | the thermostat reports all its values |
+| Zone 2 (systems with an iT300TX, `S06` = 1) | `B84` … `B92` | climate "Zone 2", its temperatures, heating and frost protection |
+| Hot water (`S06` = 2) | `C42` mode, `C45` status | select Auto / Once / On / Off, binary sensor Heating / Idle |
+
+Values are read every minute; reading sends nothing to the thermostat. A command first puts the thermostat in refresh
+mode (`F` = 60, "Turn On Refresh Mode for X Seconds" in the API's own words), so the battery thermostat takes it at
+once, then sets one attribute per request (the iT500 reports `multiAttributeCapable` = false). The new value is shown
+until the thermostat reports it, and the values are read again 10 seconds later. Setting a temperature in schedule
+mode is held until the next change of the schedule, as on the thermostat. A temporary hold is ended through manual
+mode, as a direct change does not stick. A password Salus stored without its special characters is retried without
+them.
+
+The protocol and the meaning of the attributes follow [ZaBug/salus-it500](https://github.com/ZaBug/salus-it500) and
+[Peterka35/salus-it500-cloud](https://github.com/Peterka35/salus-it500-cloud) (both MIT) and the attribute
+descriptions the API returns. The iT500 support has not been checked against a real iT500 yet; zone 2 and hot water
+follow those descriptions only. If something looks wrong, please open an issue with the diagnostics file (phone
+numbers and the geolocation rule are redacted).
+
 ## Supported devices
 
 - Thermostats: **IT800TX**, iT600 (HTRP-RF, HTRS-RF, HTR-RF, TS600, VS10/VS20), Quantum (SQ610, SQ620),
   dial RF (SQ605), IT700TX / IT710TX, fan coil (FC600), RF (RSQ800WRF), Elypso (C900T, EL600T),
-  TRVs with their own thermostat (TRV3RF, CTLV630)
+  TRVs with their own thermostat (TRV3RF, CTLV630), AO600RF / AO600, IT400TX, and **iT500** (see
+  [Salus iT500](#salus-it500))
 - TRVs controlled by a thermostat (it600TRV, it600MINITRV, TRV10RFM) and receivers: whether they heat
 - Relays and plugs: SR600, SC812ZB, SC824ZB, SP600, SPE600, light switches; RS600 used as one or two relays
 - Roller shutters and blinds: RS600
@@ -137,9 +176,11 @@ reports something unexpected, use **Download diagnostics** on the integration an
 - Binary sensors: door / window contacts (SW600, OS600), water leak (WLS600), smoke, heat and motion sensors (MS600)
 - Buttons: OneTouch rules
 
-The models added in 2.4.0 have not been checked against real devices yet: they follow the property names the
-Salus app itself uses for them (category by category, from the Salus web app). If one of them shows something wrong,
-please open an issue with the diagnostics file.
+The models added in 2.4.0 and 2.5.0 have not been checked against real devices yet: they follow the property names
+the Salus app itself uses for them (category by category, from the Salus web app). If one of them shows something
+wrong, please open an issue with the diagnostics file. An IT400TX is recognized by its model name; it reports the
+`sTherS` / `sComm` names under ep9 like an FC600, so it is controlled like one (off through the hold type alone, a new
+temperature keeps its system mode).
 
 Not supported yet: hot water timers (it600HW, TS600HW), energy readings of SPE600 plugs and ECM600 meters (the
 scale of their values is not known yet), cooling and fan speed of fan coil thermostats (they are shown as heat / off),
@@ -206,6 +247,7 @@ Code layout (`custom_components/salus_cloud`):
 | `thermostat.py`, `settings.py`, `gateway.py` | What is shown for thermostats, app settings and gateways |
 | `measurements.py` | What is shown for other devices: temperature sensors, TRV relays, battery alarms |
 | `entity.py` and the platform modules | Home Assistant entities |
+| `it500/` | Salus iT500 accounts: Arrayent API client, attribute decoding, coordinator and entities |
 
 CI runs the tests against Home Assistant 2025.8.0 (minimum), 2026.2.3 and the latest release, ruff, plus
 [hassfest](https://github.com/home-assistant/actions) and the [HACS action](https://hacs.xyz/docs/publish/action/).

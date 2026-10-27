@@ -17,6 +17,8 @@ from .coordinator import SalusCloudCoordinator, SalusConfigEntry
 from .device import SalusDevice
 from .entity import SalusEntity, SalusGatewayEntity, SalusPropertyEntity
 from .gateway import PANEL_SWITCH_PATTERN, RECEIVER_MODE_OPTIONS, RSSI_PATTERN, receiver_mode
+from .it500 import is_it500_entry
+from .it500 import sensor as it500_sensor
 from .measurements import DEVICE_SENSORS
 from .shadow import as_int, as_number, find_property
 from .thermostat import SHADOW_SENSORS, ShadowSensorDescription
@@ -30,6 +32,9 @@ async def async_setup_entry(
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     """Set up Salus Cloud sensors."""
+    if is_it500_entry(entry):
+        await it500_sensor.async_setup_entry(hass, entry, async_add_entities)
+        return
     coordinator = entry.runtime_data
     entities: list[SensorEntity] = []
     for device in coordinator.data.values():

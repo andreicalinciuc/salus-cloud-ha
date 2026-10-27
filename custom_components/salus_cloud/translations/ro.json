@@ -2,8 +2,24 @@
   "config": {
     "step": {
       "user": {
-        "title": "Salus Cloud",
-        "description": "Introdu datele de autentificare Salus Cloud",
+        "title": "Salus",
+        "description": "Ce aplicație folosești pentru dispozitivele Salus?",
+        "menu_options": {
+          "cloud": "Salus Smart Home (iT600, iT800, Quantum și altele)",
+          "it500": "Salus iT500"
+        }
+      },
+      "cloud": {
+        "title": "Salus Smart Home",
+        "description": "Introdu e-mailul și parola din aplicația Salus Smart Home",
+        "data": {
+          "email": "E-mail",
+          "password": "Parolă"
+        }
+      },
+      "it500": {
+        "title": "Salus iT500",
+        "description": "Introdu e-mailul și parola din aplicația Salus iT500",
         "data": {
           "email": "E-mail",
           "password": "Parolă"
@@ -11,7 +27,7 @@
       },
       "reauth_confirm": {
         "title": "Salus Cloud",
-        "description": "Salus Cloud a respins parola pentru {email}. Introdu parola actuală.",
+        "description": "Salus a respins parola pentru {email}. Introdu parola actuală.",
         "data": {
           "password": "Parolă"
         }
@@ -19,7 +35,7 @@
     },
     "error": {
       "invalid_auth": "E-mail sau parolă greșită",
-      "cannot_connect": "Nu se poate conecta la Salus Cloud",
+      "cannot_connect": "Nu se poate conecta la Salus",
       "no_devices": "Nu s-au găsit dispozitive în cont",
       "unknown": "A apărut o eroare neașteptată"
     },
@@ -74,6 +90,26 @@
       },
       "cloud_connection": {
         "name": "Conexiune cloud"
+      },
+      "frost_protection": {
+        "name": "Protecție îngheț"
+      },
+      "zone_2_heating": {
+        "name": "Încălzire zona 2",
+        "state": {
+          "on": "Încălzește",
+          "off": "Inactiv"
+        }
+      },
+      "zone_2_frost_protection": {
+        "name": "Protecție îngheț zona 2"
+      },
+      "hot_water": {
+        "name": "Apă caldă",
+        "state": {
+          "on": "Încălzește",
+          "off": "Inactiv"
+        }
       }
     },
     "sensor": {
@@ -119,6 +155,15 @@
       },
       "wifi_signal": {
         "name": "Semnal Wi-Fi"
+      },
+      "zone_2_current_temperature": {
+        "name": "Temperatură zona 2"
+      },
+      "zone_2_target_temperature": {
+        "name": "Temperatură setată zona 2"
+      },
+      "signal_strength": {
+        "name": "Putere semnal"
       }
     },
     "climate": {
@@ -128,7 +173,21 @@
             "state": {
               "schedule": "Program",
               "manual": "Manual",
-              "away": "Protecție îngheț"
+              "away": "Protecție îngheț",
+              "temporary_hold": "Menținere temporară"
+            }
+          }
+        }
+      },
+      "zone_2": {
+        "name": "Zona 2",
+        "state_attributes": {
+          "preset_mode": {
+            "state": {
+              "schedule": "Program",
+              "manual": "Manual",
+              "away": "Protecție îngheț",
+              "temporary_hold": "Menținere temporară"
             }
           }
         }
@@ -194,6 +253,15 @@
           "tpi_underfloor": "TPI încălzire în pardoseală",
           "tpi_radiator": "TPI radiatoare",
           "tpi_electric": "TPI încălzire electrică"
+        }
+      },
+      "hot_water_mode": {
+        "name": "Mod apă caldă",
+        "state": {
+          "auto": "Automat",
+          "once": "O dată",
+          "on": "Pornit",
+          "off": "Oprit"
         }
       }
     },

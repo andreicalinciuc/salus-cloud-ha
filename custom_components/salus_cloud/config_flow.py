@@ -19,7 +19,16 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.selector import NumberSelector, NumberSelectorConfig, NumberSelectorMode
 
 from .api import SalusCloudApi, SalusCloudAuthenticationError, SalusCloudConnectionError
-from .const import CONF_HUMIDITY_INTERVAL, CONF_SYNC_MODES, DEFAULT_HUMIDITY_INTERVAL_MINUTES, DOMAIN
+from .const import (
+    ACCOUNT_TYPE_IT500,
+    CONF_ACCOUNT_TYPE,
+    CONF_HUMIDITY_INTERVAL,
+    CONF_SYNC_MODES,
+    DEFAULT_HUMIDITY_INTERVAL_MINUTES,
+    DOMAIN,
+)
+from .it500 import is_it500_entry
+from .it500.api import SalusIt500Api
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -43,12 +52,26 @@ class SalusCloudConfigFlow(ConfigFlow, domain=DOMAIN):
         """Return the options flow."""
         return SalusOptionsFlow()
 
-    async def _async_validate(self, email: str, password: str) -> str | None:
-        """Log in and look for gateways; return error key or None."""
-        api = SalusCloudApi(email, password, session=async_get_clientsession(self.hass))
+    @classmethod
+    @callback
+    def async_supports_options_flow(cls, config_entry: ConfigEntry) -> bool:
+        """Return whether the entry has options; mode synchronization and humidity reading are Salus Cloud only."""
+        return not is_it500_entry(config_entry)
+
+    async def _async_validate(self, email: str, password: str, *, it500: bool = False) -> str | None:
+        """Log in and look for gateways (iT500: devices); return error key or None."""
+        session = async_get_clientsession(self.hass)
         try:
-            await api.authenticate()
-            gateways = await api.get_gateways()
+            if it500:
+                api = SalusIt500Api(email, password, session)
+                await api.authenticate()
+                return None if await api.get_devices() else "no_devices"
+            cloud_api = SalusCloudApi(email, password, session=session)
+            try:
+                await cloud_api.authenticate()
+                gateways = await cloud_api.get_gateways()
+            finally:
+                await cloud_api.close()
         except SalusCloudAuthenticationError:
             return "invalid_auth"
         except SalusCloudConnectionError:
@@ -56,12 +79,14 @@ class SalusCloudConfigFlow(ConfigFlow, domain=DOMAIN):
         except Exception:
             _LOGGER.exception("Unexpected error while validating Salus Cloud login")
             return "unknown"
-        finally:
-            await api.close()
         return None if gateways else "no_devices"
 
     async def async_step_user(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
-        """Handle the initial step."""
+        """Ask which app the account belongs to: Salus Smart Home (Salus Cloud) or Salus iT500."""
+        return self.async_show_menu(step_id="user", menu_options=["cloud", ACCOUNT_TYPE_IT500])
+
+    async def async_step_cloud(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """Log in with the account of the Salus Smart Home app."""
         errors: dict[str, str] = {}
         if user_input is not None:
             email = user_input[CONF_EMAIL]
@@ -73,7 +98,27 @@ class SalusCloudConfigFlow(ConfigFlow, domain=DOMAIN):
                     data={CONF_EMAIL: email, CONF_PASSWORD: user_input[CONF_PASSWORD]},
                 )
             errors["base"] = error
-        return self.async_show_form(step_id="user", data_schema=STEP_USER_DATA_SCHEMA, errors=errors)
+        return self.async_show_form(step_id="cloud", data_schema=STEP_USER_DATA_SCHEMA, errors=errors)
+
+    async def async_step_it500(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """Log in with the account of the Salus iT500 app."""
+        errors: dict[str, str] = {}
+        if user_input is not None:
+            email = user_input[CONF_EMAIL]
+            # The same email address can have a Salus Cloud account as well
+            await self.async_set_unique_id(f"{ACCOUNT_TYPE_IT500}_{email.lower()}")
+            self._abort_if_unique_id_configured()
+            if (error := await self._async_validate(email, user_input[CONF_PASSWORD], it500=True)) is None:
+                return self.async_create_entry(
+                    title=f"Salus iT500 ({email})",
+                    data={
+                        CONF_EMAIL: email,
+                        CONF_PASSWORD: user_input[CONF_PASSWORD],
+                        CONF_ACCOUNT_TYPE: ACCOUNT_TYPE_IT500,
+                    },
+                )
+            errors["base"] = error
+        return self.async_show_form(step_id=ACCOUNT_TYPE_IT500, data_schema=STEP_USER_DATA_SCHEMA, errors=errors)
 
     async def async_step_reauth(self, entry_data: Mapping[str, Any]) -> ConfigFlowResult:
         """Handle rejected credentials."""
@@ -84,7 +129,10 @@ class SalusCloudConfigFlow(ConfigFlow, domain=DOMAIN):
         entry = self._get_reauth_entry()
         errors: dict[str, str] = {}
         if user_input is not None:
-            if (error := await self._async_validate(entry.data[CONF_EMAIL], user_input[CONF_PASSWORD])) is None:
+            error = await self._async_validate(
+                entry.data[CONF_EMAIL], user_input[CONF_PASSWORD], it500=is_it500_entry(entry)
+            )
+            if error is None:
                 return self.async_update_reload_and_abort(
                     entry, data_updates={CONF_PASSWORD: user_input[CONF_PASSWORD]}
                 )

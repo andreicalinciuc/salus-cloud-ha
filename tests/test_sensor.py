@@ -218,4 +218,7 @@ def test_every_entity_has_translated_name_and_states() -> None:
                 assert translated["state"][option], (path.name, description.key, option)
         assert set(entity["binary_sensor"]["heating"]["state"]) == {"on", "off"}
         presets = entity["climate"]["thermostat"]["state_attributes"]["preset_mode"]["state"]
-        assert set(presets) == {"schedule", "manual", "away"}, path.name
+        # temporary_hold is the iT500's; its zone 2 has the same presets
+        assert set(presets) == {"schedule", "manual", "away", "temporary_hold"}, path.name
+        assert entity["climate"]["zone_2"]["state_attributes"]["preset_mode"]["state"] == presets, path.name
+        assert set(entity["select"]["hot_water_mode"]["state"]) == {"auto", "once", "on", "off"}, path.name

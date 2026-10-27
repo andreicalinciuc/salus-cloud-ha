@@ -269,6 +269,9 @@ def test_category_from_the_device_list_wins_over_the_model() -> None:
     assert device("SQ605RF(WB)").is_thermostat
     assert device("SQ620BRF").is_thermostat
     assert device("IT710TX").is_thermostat
+    assert device("AO600RF").category == "211"
+    assert device("AO600").is_thermostat
+    assert device("IT400TX").is_thermostat
     assert device("SC824ZB").is_switch
     assert not device("SC824ZB", name="Thermostat relay").is_thermostat
     assert not device("TS600HW").is_thermostat

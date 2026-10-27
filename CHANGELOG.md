@@ -3,6 +3,26 @@
 All notable changes to this project are documented in this file. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [2.5.0] - 2026-10-27
+
+Support for the Salus iT500. It has its own account and cloud, so the integration now asks which app the account
+belongs to. Not checked on a real iT500 yet: if something looks wrong, please open an issue with the diagnostics file.
+
+### Added
+- **Salus iT500** thermostats: when adding the integration, choose **Salus iT500** and log in with the email and
+  password of the Salus iT500 app. It uses the API of the app (Arrayent), which still works after salus-it500.com was
+  taken offline. Each thermostat gets a climate entity (heat / off, presets Schedule / Temporary hold / Manual), its
+  temperature and target temperature, heating, frost protection, low battery, gateway cloud connection, signal
+  strength and a Refresh button. Systems with a second zone (iT300TX) get a "Zone 2" climate entity with its own
+  values; systems with hot water get the hot water mode (Auto / Once / On / Off) and whether it heats. The protocol
+  follows ZaBug/salus-it500 and Peterka35/salus-it500-cloud (both MIT).
+- AO600RF / AO600 thermostats are recognized by model when the device list has no category, and IT400TX thermostats
+  by their model name (controlled like an FC600, whose property names it reports). Not checked on real devices yet.
+
+### Changed
+- Adding the integration starts with the choice of the app: **Salus Smart Home** (Salus Cloud, as before) or
+  **Salus iT500**. Existing entries are not affected.
+
 ## [2.4.0] - 2026-10-27
 
 Support for the other Salus models. Their property names follow the Salus web app (eu.premium.salusconnect.io),
@@ -199,6 +219,7 @@ First release of Salus Cloud.
   data are redacted.
 - GitHub Actions CI: pytest on Home Assistant 2025.8.0 (minimum) and the latest release, hassfest, HACS validation.
 
+[2.5.0]: https://github.com/andreicalinciuc/salus-cloud-ha/compare/v2.4.0...v2.5.0
 [2.4.0]: https://github.com/andreicalinciuc/salus-cloud-ha/compare/v2.3.0...v2.4.0
 [2.3.0]: https://github.com/andreicalinciuc/salus-cloud-ha/compare/v2.2.1...v2.3.0
 [2.2.1]: https://github.com/andreicalinciuc/salus-cloud-ha/compare/v2.2.0...v2.2.1

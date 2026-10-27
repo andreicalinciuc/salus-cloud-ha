@@ -11,6 +11,8 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from .api import SalusCloudApi, SalusCloudAuthenticationError, SalusCloudConnectionError
 from .const import DOMAIN
 from .coordinator import SalusCloudCoordinator, SalusConfigEntry
+from .it500 import PLATFORMS as IT500_PLATFORMS
+from .it500 import async_setup_it500_entry, is_it500_entry
 
 PLATFORMS: list[Platform] = [
     Platform.CLIMATE,
@@ -26,6 +28,8 @@ PLATFORMS: list[Platform] = [
 
 async def async_setup_entry(hass: HomeAssistant, entry: SalusConfigEntry) -> bool:
     """Set up Salus Cloud from a config entry."""
+    if is_it500_entry(entry):
+        return await async_setup_it500_entry(hass, entry)
     api = SalusCloudApi(entry.data[CONF_EMAIL], entry.data[CONF_PASSWORD], session=async_get_clientsession(hass))
     try:
         await api.authenticate()
@@ -60,7 +64,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: SalusConfigEntry) -> boo
 
 async def async_unload_entry(hass: HomeAssistant, entry: SalusConfigEntry) -> bool:
     """Unload a config entry (the coordinator stops its MQTT connection when the entry unloads)."""
-    return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+    return await hass.config_entries.async_unload_platforms(
+        entry, IT500_PLATFORMS if is_it500_entry(entry) else PLATFORMS
+    )
 
 
 async def async_remove_config_entry_device(
@@ -68,6 +74,9 @@ async def async_remove_config_entry_device(
 ) -> bool:
     """Allow deleting a device only once Salus Cloud no longer lists it."""
     coordinator = entry.runtime_data
+    if is_it500_entry(entry):
+        current = {device.unique_id for device in (coordinator.data or {}).values()}
+        return not any(domain == DOMAIN and identifier in current for domain, identifier in device_entry.identifiers)
     current = {
         *(coordinator.data or {}),
         *(gateway.id for gateway in coordinator.gateways),

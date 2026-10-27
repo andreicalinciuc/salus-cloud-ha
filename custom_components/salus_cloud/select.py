@@ -14,6 +14,8 @@ from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from .coordinator import SalusCloudCoordinator, SalusConfigEntry
 from .device import SalusDevice
 from .entity import SalusPropertyEntity
+from .it500 import is_it500_entry
+from .it500 import select as it500_select
 from .settings import SELECT_SETTINGS, SelectSetting, find_setting
 from .shadow import as_int
 
@@ -26,6 +28,9 @@ async def async_setup_entry(
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     """Set up thermostat settings with a list of values."""
+    if is_it500_entry(entry):
+        await it500_select.async_setup_entry(hass, entry, async_add_entities)
+        return
     coordinator = entry.runtime_data
     async_add_entities(
         [

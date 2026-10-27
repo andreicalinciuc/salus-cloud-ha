@@ -24,6 +24,30 @@
         "state": {
           "on": "mdi:cloud-check-outline"
         }
+      },
+      "frost_protection": {
+        "default": "mdi:snowflake-off",
+        "state": {
+          "on": "mdi:snowflake-thermometer"
+        }
+      },
+      "zone_2_heating": {
+        "default": "mdi:fire-off",
+        "state": {
+          "on": "mdi:fire"
+        }
+      },
+      "zone_2_frost_protection": {
+        "default": "mdi:snowflake-off",
+        "state": {
+          "on": "mdi:snowflake-thermometer"
+        }
+      },
+      "hot_water": {
+        "default": "mdi:water-boiler-off",
+        "state": {
+          "on": "mdi:water-boiler"
+        }
       }
     },
     "sensor": {
@@ -58,6 +82,9 @@
       },
       "wifi_signal": {
         "default": "mdi:wifi"
+      },
+      "zone_2_target_temperature": {
+        "default": "mdi:thermometer-check"
       }
     },
     "climate": {
@@ -68,7 +95,21 @@
             "state": {
               "schedule": "mdi:calendar-clock",
               "manual": "mdi:hand-back-right",
-              "away": "mdi:snowflake-thermometer"
+              "away": "mdi:snowflake-thermometer",
+              "temporary_hold": "mdi:timer-outline"
+            }
+          }
+        }
+      },
+      "zone_2": {
+        "state_attributes": {
+          "preset_mode": {
+            "default": "mdi:thermostat",
+            "state": {
+              "schedule": "mdi:calendar-clock",
+              "manual": "mdi:hand-back-right",
+              "away": "mdi:snowflake-thermometer",
+              "temporary_hold": "mdi:timer-outline"
             }
           }
         }
@@ -117,6 +158,9 @@
       },
       "heating_control": {
         "default": "mdi:tune-variant"
+      },
+      "hot_water_mode": {
+        "default": "mdi:water-boiler"
       }
     },
     "button": {

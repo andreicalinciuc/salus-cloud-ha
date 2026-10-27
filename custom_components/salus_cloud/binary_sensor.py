@@ -16,6 +16,8 @@ from .coordinator import SalusCloudCoordinator, SalusConfigEntry
 from .device import BINARY_SENSOR_CATEGORIES, IAS_ZONE_ALARM_PATTERN, SalusDevice
 from .entity import SalusEntity, SalusGatewayEntity, SalusPropertyEntity
 from .gateway import CLOUD_PATTERN, RELAY_PATTERN
+from .it500 import binary_sensor as it500_binary_sensor
+from .it500 import is_it500_entry
 from .measurements import BATTERY_LOW_PATTERN as DEVICE_BATTERY_LOW_PATTERN
 from .measurements import RELAY_STATUS_PATTERN
 from .settings import is_setting
@@ -41,7 +43,13 @@ async def async_setup_entry(
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     """Set up Salus Cloud binary sensors."""
-    coordinator = entry.runtime_data
+    if is_it500_entry(entry):
+        await it500_binary_sensor.async_setup_entry(hass, entry, async_add_entities)
+    else:
+        async_add_entities(_entities(entry.runtime_data))
+
+
+def _entities(coordinator: SalusCloudCoordinator) -> list[BinarySensorEntity]:
     entities: list[BinarySensorEntity] = []
     for device in coordinator.data.values():
         properties = device.properties
@@ -68,7 +76,7 @@ async def async_setup_entry(
             entities.append(SalusBoilerBinarySensor(coordinator, gateway.id, "boiler", key))
         if (key := find_property(properties, CLOUD_PATTERN, with_endpoint=True)) is not None:
             entities.append(SalusCloudConnectionBinarySensor(coordinator, gateway.id, "cloud_connection", key))
-    async_add_entities(entities)
+    return entities
 
 
 def _device_class(device: SalusDevice) -> BinarySensorDeviceClass | None:

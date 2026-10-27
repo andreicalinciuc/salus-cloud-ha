@@ -9,7 +9,8 @@ from typing import Any
 from .properties import DEFAULT_PROPERTY_NAMES, PropertyNames
 from .shadow import endpoint, endpoint_number, find_properties, find_property
 
-THERMOSTAT_MODELS = ("HTRP-RF", "TS600", "VS10", "VS20", "SQ610", "FC600", "IT800")
+# The Salus app shows an IT400TX with a thermostat layout of its own; its category id is not known
+THERMOSTAT_MODELS = ("HTRP-RF", "TS600", "VS10", "VS20", "SQ610", "FC600", "IT800", "IT400")
 SWITCH_MODELS = ("RS600", "SPE600", "SR600")
 BINARY_SENSOR_TYPES = ("door_sensor", "window_sensor", "motion_sensor", "binary_sensor")
 
@@ -28,7 +29,7 @@ THERMOSTAT_CATEGORIES = {
     "205",  # IT700TX
     "208",  # IT710TX
     "210",  # Quantum Plus thermostats (SQ620)
-    "211",  # fan coil thermostats reporting sTherS under ep9
+    "211",  # AO600RF / AO600 thermostats (sTherS under ep9)
 }
 SWITCH_CATEGORIES = {
     "4",  # smart relays (SR600, SC812ZB, SC824ZB)
@@ -77,6 +78,7 @@ MODEL_CATEGORIES = {
     **dict.fromkeys(("IT700TX",), "205"),
     **dict.fromkeys(("IT710TX",), "208"),
     **dict.fromkeys(("SQ620B", "SQ620BRF"), "210"),
+    **dict.fromkeys(("AO600RF", "AO600"), "211"),
     **dict.fromkeys(("SR600", "SC812ZB", "SC824ZB"), "4"),
     **dict.fromkeys(("SP600", "SPE600", "CTLP631", "CTLP632", "SX885ZB"), "7"),
     **dict.fromkeys(("45857",), "27"),

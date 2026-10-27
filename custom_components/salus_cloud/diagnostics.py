@@ -10,6 +10,7 @@ from homeassistant.const import CONF_EMAIL, CONF_PASSWORD
 from homeassistant.core import HomeAssistant
 
 from .coordinator import SalusConfigEntry
+from .it500 import is_it500_entry
 
 # Identifiers and personal data; device models, names and shadow property names stay visible
 TO_REDACT = {
@@ -36,6 +37,10 @@ NETWORK_PROPERTY = re.compile(
 )
 
 
+# Phone numbers and the geolocation rule an iT500 account may hold
+IT500_PERSONAL_ATTRIBUTE = re.compile(r"^(Phone\d+|Rule)$")
+
+
 def _redact_properties(properties: dict[str, Any]) -> dict[str, Any]:
     return {
         key: "**REDACTED**" if NETWORK_PROPERTY.search(key.rsplit(":", 1)[-1]) else value
@@ -46,6 +51,20 @@ def _redact_properties(properties: dict[str, Any]) -> dict[str, Any]:
 async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry: SalusConfigEntry) -> dict[str, Any]:
     """Return diagnostics for a config entry."""
     coordinator = entry.runtime_data
+    if is_it500_entry(entry):
+        return {
+            "entry": async_redact_data(dict(entry.data), TO_REDACT),
+            "devices": [
+                {
+                    "fresh": device.fresh,
+                    "attributes": {
+                        name: "**REDACTED**" if IT500_PERSONAL_ATTRIBUTE.match(name) and value else value
+                        for name, value in device.attributes.items()
+                    },
+                }
+                for device in (coordinator.data or {}).values()
+            ],
+        }
     devices = [
         {
             "name": device.info.get("name"),

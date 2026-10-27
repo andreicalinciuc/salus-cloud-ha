@@ -2,6 +2,10 @@
 
 DOMAIN = "salus_cloud"
 
+# Entry data: which cloud the account belongs to; entries without it are Salus Cloud (Salus Smart Home app) accounts
+CONF_ACCOUNT_TYPE = "account_type"
+ACCOUNT_TYPE_IT500 = "it500"
+
 # Option: mode change of one thermostat is applied to all thermostats of its gateway
 CONF_SYNC_MODES = "sync_thermostat_modes"
 # Option: minutes between humidity readings requested from devices (0 = only what they report on their own)

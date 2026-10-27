@@ -2,8 +2,24 @@
   "config": {
     "step": {
       "user": {
-        "title": "Salus Cloud",
-        "description": "Enter your Salus Cloud credentials",
+        "title": "Salus",
+        "description": "Which app do you use for your Salus devices?",
+        "menu_options": {
+          "cloud": "Salus Smart Home (iT600, iT800, Quantum and others)",
+          "it500": "Salus iT500"
+        }
+      },
+      "cloud": {
+        "title": "Salus Smart Home",
+        "description": "Enter the email and password of the Salus Smart Home app",
+        "data": {
+          "email": "Email",
+          "password": "Password"
+        }
+      },
+      "it500": {
+        "title": "Salus iT500",
+        "description": "Enter the email and password of the Salus iT500 app",
         "data": {
           "email": "Email",
           "password": "Password"
@@ -11,7 +27,7 @@
       },
       "reauth_confirm": {
         "title": "Salus Cloud",
-        "description": "Salus Cloud rejected the password of {email}. Enter the current password.",
+        "description": "Salus rejected the password of {email}. Enter the current password.",
         "data": {
           "password": "Password"
         }
@@ -19,7 +35,7 @@
     },
     "error": {
       "invalid_auth": "Invalid email or password",
-      "cannot_connect": "Cannot connect to Salus Cloud",
+      "cannot_connect": "Cannot connect to Salus",
       "no_devices": "No devices found on your account",
       "unknown": "Unexpected error occurred"
     },
@@ -74,6 +90,26 @@
       },
       "cloud_connection": {
         "name": "Cloud connection"
+      },
+      "frost_protection": {
+        "name": "Frost protection"
+      },
+      "zone_2_heating": {
+        "name": "Zone 2 heating",
+        "state": {
+          "on": "Heating",
+          "off": "Idle"
+        }
+      },
+      "zone_2_frost_protection": {
+        "name": "Zone 2 frost protection"
+      },
+      "hot_water": {
+        "name": "Hot water",
+        "state": {
+          "on": "Heating",
+          "off": "Idle"
+        }
       }
     },
     "sensor": {
@@ -119,6 +155,15 @@
       },
       "wifi_signal": {
         "name": "Wi-Fi signal"
+      },
+      "zone_2_current_temperature": {
+        "name": "Zone 2 temperature"
+      },
+      "zone_2_target_temperature": {
+        "name": "Zone 2 target temperature"
+      },
+      "signal_strength": {
+        "name": "Signal strength"
       }
     },
     "climate": {
@@ -128,7 +173,21 @@
             "state": {
               "schedule": "Schedule",
               "manual": "Manual",
-              "away": "Frost protection"
+              "away": "Frost protection",
+              "temporary_hold": "Temporary hold"
+            }
+          }
+        }
+      },
+      "zone_2": {
+        "name": "Zone 2",
+        "state_attributes": {
+          "preset_mode": {
+            "state": {
+              "schedule": "Schedule",
+              "manual": "Manual",
+              "away": "Frost protection",
+              "temporary_hold": "Temporary hold"
             }
           }
         }
@@ -194,6 +253,15 @@
           "tpi_underfloor": "TPI underfloor heating",
           "tpi_radiator": "TPI radiators",
           "tpi_electric": "TPI electric heating"
+        }
+      },
+      "hot_water_mode": {
+        "name": "Hot water mode",
+        "state": {
+          "auto": "Auto",
+          "once": "Once",
+          "on": "On",
+          "off": "Off"
         }
       }
     },
