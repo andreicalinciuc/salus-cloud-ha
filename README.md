@@ -8,6 +8,10 @@ AWS IoT MQTT). Supports iT600, Quantum, fan coil and iT800 (IT800TX) thermostats
 roller shutters, sensors and OneTouch rules; see [Supported devices](#supported-devices). iT500 thermostats, which
 use an account and cloud of their own, are supported as well; see [Salus iT500](#salus-it500).
 
+**Quick start:** install with HACS, restart Home Assistant, then **Settings → Devices & services → Add integration →
+Salus Cloud**, choose your app (Salus Smart Home or Salus iT500) and log in with the email and password of that app.
+Step by step: [Installation and setup](#installation-and-setup).
+
 ## Highlights
 
 - **iT600 and iT800 (IT800TX) thermostats**: read and control, detected automatically from the properties a device reports.
@@ -41,21 +45,73 @@ Turning an iT800 thermostat on/off sends `SetSystemMode` (4/0) **and** the match
 
 The iT800 support was written by Vlad Ohai.
 
-## Installation
+## Installation and setup
 
-### HACS (custom repository)
+You need Home Assistant 2025.8 or newer, and the devices must already work in the Salus app on your phone: the
+integration uses the same account and adds no pairing of its own.
+
+### 1. Install the integration
+
+**With HACS** (recommended):
 
 1. HACS → ⋮ (top right) → **Custom repositories**.
 2. Repository: `https://github.com/andreicalinciuc/salus-cloud-ha`, type: **Integration** → **Add**.
 3. Search **Salus Cloud** → **Download** → choose the latest release.
-4. Restart Home Assistant.
-5. **Settings → Devices & services → Add integration → Salus Cloud**, choose the app you use (**Salus Smart Home**
-   or **Salus iT500**) and log in with the email and password of that app.
+4. Restart Home Assistant (**Settings → System → ⋮ → Restart Home Assistant**).
 
-### Manual
+**Manually:** copy `custom_components/salus_cloud` from the
+[latest release](https://github.com/andreicalinciuc/salus-cloud-ha/releases/latest) into `<config>/custom_components/`
+and restart Home Assistant.
 
-Copy `custom_components/salus_cloud` from the [latest release](https://github.com/andreicalinciuc/salus-cloud-ha/releases/latest)
-into `<config>/custom_components/` and restart Home Assistant.
+### 2. Find out which Salus app you use
+
+Salus has two clouds with separate accounts. Pick the one of the app you control your devices with:
+
+| The app on your phone | Your devices | Choose in Home Assistant |
+|---|---|---|
+| **Salus Smart Home** | a Salus gateway (UGE600, UG600, …) with iT600 / Quantum / IT800TX thermostats, TRVs, relays, plugs, sensors | **Salus Smart Home** |
+| **Salus iT500** app (the account that also worked on salus-it500.com) | an iT500 thermostat with its internet gateway | **Salus iT500** |
+
+If you have both, add the integration twice, once for each account (the same email address works for both).
+
+### 3. Add the integration
+
+1. **Settings → Devices & services → + Add integration**, search **Salus Cloud**.
+2. Choose the app from step 2.
+3. Enter the **email address and password of that app** (not a username) → **Submit**.
+4. Home Assistant shows the devices found; assign them to areas if you like → **Finish**.
+
+Each thermostat or other device (and each Salus Smart Home gateway) becomes a device in Home Assistant, named as in
+the Salus app, with its entities (thermostat, temperature, heating, …). The thermostat card shows the current and
+target temperature right away; the values update within seconds (Salus Smart Home) or within a minute (iT500).
+
+If setup stops with an error:
+
+| Error | What to do |
+|---|---|
+| Invalid email or password | Log in to the Salus app with the same email and password. Accounts with two-factor authentication are not supported. Make sure you chose the right app in step 2: a Salus Smart Home login does not work for iT500 and the other way round. |
+| No devices found on your account | Open the Salus app: the gateway must be online and the devices paired, then try again. |
+| Cannot connect to Salus | Home Assistant needs internet access (and, for Salus Smart Home, `*.iot.eu-central-1.amazonaws.com` on port 443). Try again in a few minutes. |
+| Account is already configured | That account is already added; it is listed under **Settings → Devices & services → Salus Cloud**. |
+
+### 4. Options (Salus Smart Home)
+
+**Settings → Devices & services → Salus Cloud → Configure**:
+
+- **Synchronize thermostat modes**: changing the mode of one thermostat changes it for all thermostats of the same
+  gateway (off by default).
+- **Humidity reading (minutes)**: how often thermostats with a humidity sensor are asked for a fresh reading
+  (5 by default, 0 turns it off); see [How values update](#how-values-update).
+
+iT500 accounts have no options.
+
+### Changed password, updates, removal
+
+- **Changed the password in the Salus app?** Home Assistant shows a notification under **Settings** asking to
+  re-authenticate; enter the new password there.
+- **Update:** HACS shows new releases (HACS → Salus Cloud → ⋮ → **Update information** to check now); update and
+  restart Home Assistant. The changes are listed in the [CHANGELOG](CHANGELOG.md).
+- **Remove:** **Settings → Devices & services → Salus Cloud → ⋮ → Delete**, then remove the repository in HACS.
 
 ## Entities per thermostat
 
