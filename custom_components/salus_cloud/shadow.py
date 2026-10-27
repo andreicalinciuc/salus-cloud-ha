@@ -27,6 +27,11 @@ def cluster_property(key: str) -> str:
     return rest if endpoint.startswith("ep") and rest else key
 
 
+def endpoint(key: str) -> str:
+    """Return the endpoint of a property ("ep1:sTherS:SystemMode" -> "ep1")."""
+    return key.partition(":")[0]
+
+
 def property_name(key: str) -> str:
     """Return the property name without endpoint and cluster ("ep1:sTherS:SystemMode" -> "SystemMode")."""
     return key.rsplit(":", 1)[-1]

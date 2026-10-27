@@ -9,7 +9,7 @@ from custom_components.salus_cloud.api import (
     SalusCloudConnectionError,
     SalusMetadata,
 )
-from custom_components.salus_cloud.const import CONF_SYNC_MODES
+from custom_components.salus_cloud.const import CONF_HUMIDITY_INTERVAL, CONF_SYNC_MODES
 from custom_components.salus_cloud.coordinator import SalusCloudCoordinator
 
 from . import fixtures
@@ -96,7 +96,8 @@ async def create_coordinator(
     hass.loop = asyncio.get_running_loop()
     entry = MagicMock()
     entry.entry_id = "salus-entry"
-    entry.options = {CONF_SYNC_MODES: sync}
+    # Periodic humidity reads would start a real timer on the mocked Home Assistant
+    entry.options = {CONF_SYNC_MODES: sync, CONF_HUMIDITY_INTERVAL: 0}
     clock = [0.0]
     connection = connection or FakeConnection()
     coordinator = SalusCloudCoordinator(

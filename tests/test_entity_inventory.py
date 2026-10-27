@@ -29,6 +29,7 @@ EXPECTED = [
     ("binary_sensor", "GW_T2_heating", "heating", None, None, None),
     ("binary_sensor", "GW_boiler", "boiler", None, None, None),
     ("binary_sensor", "GW_cloud_connection", "cloud_connection", None, "diagnostic", "connectivity"),
+    ("button", "GW_T1_refresh", "refresh", None, None, None),
     ("button", "GW_onetouch_40000000-0000-4000-8000-000000000001", None, "Home Heating off (Stand-by)", None, None),
     ("climate", "GW_T1", "thermostat", None, None, None),
     ("climate", "GW_T2", "thermostat", None, None, None),

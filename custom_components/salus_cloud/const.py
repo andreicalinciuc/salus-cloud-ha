@@ -4,6 +4,9 @@ DOMAIN = "salus_cloud"
 
 # Option: mode change of one thermostat is applied to all thermostats of its gateway
 CONF_SYNC_MODES = "sync_thermostat_modes"
+# Option: minutes between humidity readings requested from devices (0 = only what they report on their own)
+CONF_HUMIDITY_INTERVAL = "humidity_read_interval"
+DEFAULT_HUMIDITY_INTERVAL_MINUTES = 5
 
 # AWS Cognito configuration
 AWS_REGION = "eu-central-1"

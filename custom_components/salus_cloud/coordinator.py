@@ -14,7 +14,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import CALLBACK_TYPE, HomeAssistant, callback
 from homeassistant.exceptions import ConfigEntryAuthFailed, HomeAssistantError
 from homeassistant.helpers.device_registry import DeviceInfo
-from homeassistant.helpers.event import async_call_later
+from homeassistant.helpers.event import async_call_later, async_track_time_interval
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .api import (
@@ -25,8 +25,10 @@ from .api import (
     SalusMetadata,
 )
 from .const import (
+    CONF_HUMIDITY_INTERVAL,
     CONF_SYNC_MODES,
     CONFIRM_REFRESH_DELAY_SECONDS,
+    DEFAULT_HUMIDITY_INTERVAL_MINUTES,
     DEFAULT_SHADOW_INDEX,
     DOMAIN,
     GATEWAY_SHADOW_INDEX,
@@ -89,6 +91,8 @@ class SalusCloudCoordinator(DataUpdateCoordinator[dict[str, SalusDevice]]):
         self._metadata_fetched_at = 0.0
         self._connection: SalusMqttConnection | None = None
         self._cancel_confirmation: CALLBACK_TYPE | None = None
+        self._cancel_humidity_reads: CALLBACK_TYPE | None = None
+        self._humidity_reads_failing = False
         self.push_available = False
         # Gateway id -> device registry id of the gateway device
         self.gateway_device_ids: dict[str, str] = {}
@@ -97,6 +101,11 @@ class SalusCloudCoordinator(DataUpdateCoordinator[dict[str, SalusDevice]]):
     def sync_modes(self) -> bool:
         """Return whether a mode change is applied to all thermostats of the gateway."""
         return bool(self.config_entry.options.get(CONF_SYNC_MODES, False))
+
+    @property
+    def humidity_interval(self) -> int:
+        """Return the minutes between humidity readings requested from devices, 0 when turned off."""
+        return int(self.config_entry.options.get(CONF_HUMIDITY_INTERVAL, DEFAULT_HUMIDITY_INTERVAL_MINUTES))
 
     @property
     def gateways(self) -> list[GatewayInfo]:
@@ -254,6 +263,10 @@ class SalusCloudCoordinator(DataUpdateCoordinator[dict[str, SalusDevice]]):
             on_push_available=self._handle_push_available,
         )
         await self._connection.async_start(self._device_codes())
+        if (minutes := self.humidity_interval) > 0:
+            self._cancel_humidity_reads = async_track_time_interval(
+                self.hass, self._async_humidity_tick, timedelta(minutes=minutes)
+            )
 
     async def async_shutdown(self) -> None:
         """Stop polling and the AWS IoT connection."""
@@ -261,6 +274,9 @@ class SalusCloudCoordinator(DataUpdateCoordinator[dict[str, SalusDevice]]):
         if self._cancel_confirmation is not None:
             self._cancel_confirmation()
             self._cancel_confirmation = None
+        if self._cancel_humidity_reads is not None:
+            self._cancel_humidity_reads()
+            self._cancel_humidity_reads = None
         if self._connection is not None:
             await self._connection.async_stop()
 
@@ -345,6 +361,55 @@ class SalusCloudCoordinator(DataUpdateCoordinator[dict[str, SalusDevice]]):
             )
         except SalusCloudConnectionError as err:
             raise _error("rule_trigger_failed", f"Failed to trigger OneTouch rule: {err}", error=str(err)) from err
+
+    async def async_refresh_device(self, device_id: str) -> None:
+        """Ask a device to report all its properties again (an IT800TX takes about 40 seconds)."""
+        device = self._require_device(device_id)
+        name = device.name.strip()
+        if (command := device.refresh_command) is None:
+            raise _error("command_not_accepted", f"Salus device does not accept a refresh: {name}", devices=name)
+        try:
+            await self._async_publish(device.code, device.shadow_index or DEFAULT_SHADOW_INDEX, {command: 1})
+        except SalusCloudConnectionError as err:
+            raise _error(
+                "command_not_accepted", f"Salus device did not accept the command: {name}", devices=name
+            ) from err
+        if not self.push_available:
+            self._schedule_confirmation_refresh()
+
+    async def _async_humidity_tick(self, _now: datetime) -> None:
+        await self.async_read_humidity()
+
+    async def async_read_humidity(self) -> None:
+        """Ask devices with a humidity sensor for a fresh reading; it arrives like any value they report.
+
+        Reads are not settings: nothing is shown as pending, and a failure is only logged (once until reads work
+        again, so an offline gateway does not fill the log).
+        """
+        targets = [
+            (device, command) for device in (self.data or {}).values() if (command := device.humidity_read_command)
+        ]
+        results = await asyncio.gather(
+            *(
+                self._async_publish(device.code, device.shadow_index or DEFAULT_SHADOW_INDEX, {command: 1})
+                for device, command in targets
+            ),
+            return_exceptions=True,
+        )
+        failures = [
+            (device.name.strip(), result)
+            for (device, _), result in zip(targets, results, strict=True)
+            if isinstance(result, BaseException)
+        ]
+        if failures and not self._humidity_reads_failing:
+            _LOGGER.warning(
+                "Could not ask %s for a humidity reading, will keep trying: %s",
+                ", ".join(name for name, _ in failures),
+                failures[0][1],
+            )
+        elif not failures and self._humidity_reads_failing:
+            _LOGGER.info("Humidity readings are requested again")
+        self._humidity_reads_failing = bool(failures)
 
     def _require_device(self, device_id: str) -> SalusDevice:
         device = self.get_device(device_id)

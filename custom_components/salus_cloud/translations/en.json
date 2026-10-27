@@ -33,10 +33,12 @@
       "init": {
         "title": "Salus Cloud",
         "data": {
-          "sync_thermostat_modes": "Synchronize thermostat modes"
+          "sync_thermostat_modes": "Synchronize thermostat modes",
+          "humidity_read_interval": "Humidity reading (minutes)"
         },
         "data_description": {
-          "sync_thermostat_modes": "Changing the mode (off, schedule, manual, stand-by) of one thermostat in Home Assistant changes it for all thermostats of the same gateway. Target temperatures are not synchronized."
+          "sync_thermostat_modes": "Changing the mode (off, schedule, manual, stand-by) of one thermostat in Home Assistant changes it for all thermostats of the same gateway. Target temperatures are not synchronized.",
+          "humidity_read_interval": "How often devices are asked for a fresh humidity reading; they report it on their own only after a large change. Each reading is a short radio message to the thermostat, which may run on batteries. 0 turns it off."
         }
       }
     }
@@ -189,6 +191,11 @@
           "tpi_radiator": "TPI radiators",
           "tpi_electric": "TPI electric heating"
         }
+      }
+    },
+    "button": {
+      "refresh": {
+        "name": "Refresh"
       }
     }
   },

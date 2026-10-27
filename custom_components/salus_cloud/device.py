@@ -7,13 +7,16 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from .properties import DEFAULT_PROPERTY_NAMES, PropertyNames
-from .shadow import find_property
+from .shadow import endpoint, find_property
 
 THERMOSTAT_MODELS = ("HTRP-RF", "TS600", "VS10", "VS20", "SQ610", "FC600", "IT800")
 SWITCH_MODELS = ("RS600", "SPE600", "SR600")
 BINARY_SENSOR_TYPES = ("door_sensor", "window_sensor", "motion_sensor", "binary_sensor")
 # Alarm of a Zigbee IAS zone device (door / window contact, water leak, smoke), 1 while alarmed
 IAS_ZONE_ALARM_PATTERN = re.compile(r"^sIASZS:ErrorIASZSAlarmed1$")
+HUMIDITY_CLUSTER_PATTERN = re.compile(r"^sHumiS:MeasuredValue(_x100)?$")
+# Any ZDO property shows the endpoint a device takes management commands on
+ZDO_PATTERN = re.compile(r"^sZDO:\w+$")
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -73,3 +76,18 @@ class SalusDevice:
                 and find_property(self.properties, IAS_ZONE_ALARM_PATTERN) is not None
             )
         )
+
+    @property
+    def humidity_read_command(self) -> str | None:
+        """Return the command making the device measure and report its humidity now, None without humidity cluster.
+
+        Thermostats report humidity on their own only after a large change: an IT800TX kept one value for 16 hours.
+        """
+        key = find_property(self.properties, HUMIDITY_CLUSTER_PATTERN)
+        return None if key is None else f"{endpoint(key)}:sHumiS:SetReadMeasuredValue"
+
+    @property
+    def refresh_command(self) -> str | None:
+        """Return the command making the device report all its properties again, as the Salus app sends it."""
+        key = find_property(self.properties, ZDO_PATTERN)
+        return None if key is None else f"{endpoint(key)}:sZDO:SetRefresh_d"

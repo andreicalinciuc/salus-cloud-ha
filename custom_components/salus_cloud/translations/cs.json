@@ -33,10 +33,12 @@
       "init": {
         "title": "Salus Cloud",
         "data": {
-          "sync_thermostat_modes": "Synchronizovat režim termostatů"
+          "sync_thermostat_modes": "Synchronizovat režim termostatů",
+          "humidity_read_interval": "Čtení vlhkosti (minuty)"
         },
         "data_description": {
-          "sync_thermostat_modes": "Změna režimu (vypnuto, časový plán, manuál, stand-by) jednoho termostatu v Home Assistantu se provede u všech termostatů na stejné bráně. Nastavené teploty se nesynchronizují."
+          "sync_thermostat_modes": "Změna režimu (vypnuto, časový plán, manuál, stand-by) jednoho termostatu v Home Assistantu se provede u všech termostatů na stejné bráně. Nastavené teploty se nesynchronizují.",
+          "humidity_read_interval": "Jak často se zařízení žádají o aktuální vlhkost; sama ji hlásí jen po velké změně. Každé čtení je krátká rádiová zpráva termostatu, který může být napájen z baterií. 0 čtení vypne."
         }
       }
     }
@@ -189,6 +191,11 @@
           "tpi_radiator": "TPI radiátory",
           "tpi_electric": "TPI elektrické topení"
         }
+      }
+    },
+    "button": {
+      "refresh": {
+        "name": "Obnovit"
       }
     }
   },

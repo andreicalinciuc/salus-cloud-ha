@@ -118,6 +118,11 @@
       "heating_control": {
         "default": "mdi:tune-variant"
       }
+    },
+    "button": {
+      "refresh": {
+        "default": "mdi:refresh"
+      }
     }
   }
 }

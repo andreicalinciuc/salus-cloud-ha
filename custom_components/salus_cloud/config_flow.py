@@ -16,9 +16,10 @@ from homeassistant.config_entries import (
 from homeassistant.const import CONF_EMAIL, CONF_PASSWORD
 from homeassistant.core import callback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.helpers.selector import NumberSelector, NumberSelectorConfig, NumberSelectorMode
 
 from .api import SalusCloudApi, SalusCloudAuthenticationError, SalusCloudConnectionError
-from .const import CONF_SYNC_MODES, DOMAIN
+from .const import CONF_HUMIDITY_INTERVAL, CONF_SYNC_MODES, DEFAULT_HUMIDITY_INTERVAL_MINUTES, DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -100,14 +101,25 @@ class SalusOptionsFlow(OptionsFlowWithReload):
     """Options of Salus Cloud integration."""
 
     async def async_step_init(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
-        """Manage mode synchronization."""
+        """Manage mode synchronization and how often humidity is read."""
         if user_input is not None:
-            return self.async_create_entry(data=user_input)
+            return self.async_create_entry(
+                data={**user_input, CONF_HUMIDITY_INTERVAL: int(user_input[CONF_HUMIDITY_INTERVAL])}
+            )
+        options = self.config_entry.options
         return self.async_show_form(
             step_id="init",
             data_schema=vol.Schema(
                 {
-                    vol.Required(CONF_SYNC_MODES, default=self.config_entry.options.get(CONF_SYNC_MODES, False)): bool,
+                    vol.Required(CONF_SYNC_MODES, default=options.get(CONF_SYNC_MODES, False)): bool,
+                    vol.Required(
+                        CONF_HUMIDITY_INTERVAL,
+                        default=options.get(CONF_HUMIDITY_INTERVAL, DEFAULT_HUMIDITY_INTERVAL_MINUTES),
+                    ): NumberSelector(
+                        NumberSelectorConfig(
+                            min=0, max=120, step=5, unit_of_measurement="min", mode=NumberSelectorMode.BOX
+                        )
+                    ),
                 }
             ),
         )

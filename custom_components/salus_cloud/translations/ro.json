@@ -1,4 +1,48 @@
 {
+  "config": {
+    "step": {
+      "user": {
+        "title": "Salus Cloud",
+        "description": "Introdu datele de autentificare Salus Cloud",
+        "data": {
+          "email": "E-mail",
+          "password": "Parolă"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Salus Cloud",
+        "description": "Salus Cloud a respins parola pentru {email}. Introdu parola actuală.",
+        "data": {
+          "password": "Parolă"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "E-mail sau parolă greșită",
+      "cannot_connect": "Nu se poate conecta la Salus Cloud",
+      "no_devices": "Nu s-au găsit dispozitive în cont",
+      "unknown": "A apărut o eroare neașteptată"
+    },
+    "abort": {
+      "already_configured": "Contul este deja configurat",
+      "reauth_successful": "Parola a fost actualizată"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Salus Cloud",
+        "data": {
+          "sync_thermostat_modes": "Sincronizează modurile termostatelor",
+          "humidity_read_interval": "Citire umiditate (minute)"
+        },
+        "data_description": {
+          "sync_thermostat_modes": "Schimbarea modului (oprit, program, manual, stand-by) unui termostat în Home Assistant îl schimbă la toate termostatele aceluiași gateway. Temperaturile setate nu se sincronizează.",
+          "humidity_read_interval": "Cât de des li se cere dispozitivelor o valoare nouă a umidității; singure o trimit doar după o schimbare mare. Fiecare citire este un mesaj radio scurt către termostat, care poate funcționa pe baterii. 0 o dezactivează."
+        }
+      }
+    }
+  },
   "entity": {
     "binary_sensor": {
       "heating": {
@@ -147,6 +191,11 @@
           "tpi_radiator": "TPI radiatoare",
           "tpi_electric": "TPI încălzire electrică"
         }
+      }
+    },
+    "button": {
+      "refresh": {
+        "name": "Reîmprospătare"
       }
     }
   },

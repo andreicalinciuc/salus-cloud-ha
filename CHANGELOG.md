@@ -3,6 +3,19 @@
 All notable changes to this project are documented in this file. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [2.3.0] - 2026-10-27
+
+### Added
+- Humidity is read every 5 minutes. Thermostats report it on their own only after a large change: a checked IT800TX
+  kept reporting 57.48 % for 16 hours while the room had 61.84 %. The integration sends the command of the Salus app
+  (`sHumiS:SetReadMeasuredValue`) and the reading arrives within a second. The interval, or 0 to turn it off, is an
+  option of the integration (**Configure**).
+- "Refresh" button on each thermostat: it reports all its values again (`sZDO:SetRefresh_d`), as the Salus app asks
+  for when a device is renamed.
+
+### Fixed
+- Romanian translation of the setup, login and options; they were shown in English.
+
 ## [2.2.1] - 2026-10-27
 
 Checked against the shadow of a real IT800TX.

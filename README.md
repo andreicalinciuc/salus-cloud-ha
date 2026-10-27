@@ -76,6 +76,7 @@ device ("Humidity", "Preset", "Heating"). A value the device never reports gets 
 | `number.<name>_temperature_calibration` (config) | `TempCalibration_x10`, -2.5 … +2.5 | °C |
 | `number.<name>_frost_protection_temperature` (config) | `FrostSetpoint_x100`, device min/max | °C |
 | `number.<name>_minimum_heating_temperature` / `…_maximum_heating_temperature` (config) | `MinHeatSetpoint_x100` / `MaxHeatSetpoint_x100`, 5 … 35 | °C |
+| `button.<name>_refresh` | sends `sZDO:SetRefresh_d`: the thermostat reports all its values again | |
 
 iT800 thermostats (IT800TX) also get the settings of the Salus app, sent with the same commands and values the app
 uses:
@@ -108,6 +109,21 @@ device page shows its firmware and hardware version. Presets are shown as Schedu
 
 Every sensor shows the exact shadow property it reads in its `shadow_property` attribute. For a device that
 reports something unexpected, use **Download diagnostics** on the integration and open an issue with the file.
+
+## How values update
+
+- **Pushed changes:** what a device reports reaches Home Assistant within seconds over AWS IoT MQTT. Device states
+  are also polled every 5 minutes as a safety net (every 30 seconds when pushed changes are not available).
+- **The device decides when it reports.** An IT800TX reports its temperature when it changes by a step of its
+  display resolution (0.5 °C by default, see `select.<name>_temperature_display_resolution`) and its humidity only
+  after a large change: one kept reporting 57.48 % for 16 hours while the room had 61.84 %.
+- **Humidity reading:** every 5 minutes the integration asks devices with a humidity sensor for a fresh reading,
+  with the command the Salus app uses (`sHumiS:SetReadMeasuredValue`); the value arrives within a second. Change the
+  interval, or set 0 to turn it off, under **Settings → Devices & services → Salus Cloud → Configure**. Each reading
+  is a short radio message to the thermostat, which may run on batteries (the IT800TX reports battery power), so a
+  longer interval saves battery; 5 minutes is a default, not a recommendation.
+- **Refresh button:** asks the thermostat to report all its values again (`sZDO:SetRefresh_d`, about 40 seconds on
+  an IT800TX), for example after changing something in the Salus app.
 
 ## Supported devices
 
